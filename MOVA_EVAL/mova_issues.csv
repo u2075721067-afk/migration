@@ -1,0 +1,112 @@
+Title,Body,Labels
+Bootstrap репозиторію та ліцензія,"**Summary:** Ініціалізувати структуру (є у zip), додати LICENSE (Apache-2.0), CODEOWNERS, CONTRIBUTING.
+**Acceptance Criteria:**
+- LICENSE, CODEOWNERS, CONTRIBUTING додані
+- `make build` проходить локально
+
+**Priority:** P0 • **SP:** 1","infra,docs,P0,SP:1"
+JSON Schema: Envelope v0.1,"**Summary:** Оформити/перевірити `schemas/envelope.schema.json` + приклади.
+**AC:**
+- Валідація проходить для `examples/hello.json`
+- Негативні кейси ловляться
+**Priority:** P0 • **SP:** 2","core,P0,SP:2"
+JSON Schemas: базові дії,"**Summary:** Завершити схеми для set, print|log, sleep, parse_json, http_fetch, if, repeat, call.
+**AC:**
+- `/v1/schemas/...` віддають валідні схеми
+- Є приклади на кожну дію
+**Priority:** P0 • **SP:** 3","actions,core,P0,SP:3"
+Core types + RunStore + формат помилок,"**Summary:** Доопрацювати internal/engine (Run, RunError, статуси, часові поля).
+**AC:**
+- Узгоджений JSON результат/помилка
+- Юніт-тести для Run/RunError
+**Priority:** P0 • **SP:** 3","core,P0,SP:3"
+"Executor v0.1 + дії: print, set, sleep","**Summary:** Виконання послідовних кроків; last_result; оновлення контексту.
+**AC:**
+- E2E через `/v1/execute?wait=true` на `examples/hello.json` → `status=success`
+**Priority:** P0 • **SP:** 3","core,actions,P0,SP:3"
+Інтерполяція значень у params,"**Summary:** Підстановки `{{payload.*}}`, `{{context.*}}`, `{{last_result}}`.
+**AC:**
+- Юніт-тести 6 кейсів
+- Відсутні ключі не ламають виконання (зрозуміла помилка або null)
+**Priority:** P0 • **SP:** 5","core,P0,SP:5"
+JSONL-трейс + редакція секретів,"**Summary:** Лог кожного кроку; маскування `Authorization`, `api_key`, `bearer` у headers/body.
+**AC:**
+- `/v1/runs/{id}/logs` без секретів
+- Стабільний формат запису
+**Priority:** P0 • **SP:** 3","observability,security,P0,SP:3"
+Політики timeout/retry/budget (скелет),"**Summary:** Глобально з `meta` і локально на діях; застосовується найконсервативніший ліміт.
+**AC:**
+- Тести retry з backoff
+- Таймаут ріже довгі sleep/http_fetch
+**Priority:** P0 • **SP:** 5","core,P0,SP:5"
+Дія `http_fetch` (MVP) + allow-list,"**Summary:** GET/POST, headers, body, timeout/retry, allow-list доменів з `config/allowlist.yaml`.
+**AC:**
+- 200/429/5xx сценарії на httpbin
+- Відмова для не-allow доменів
+**Priority:** P0 • **SP:** 5","actions,security,P0,SP:5"
+Дія `parse_json`,"**Summary:** JSONPath-лайт: доступ за шляхом `a.b[0]` для last_result/payload.
+**AC:**
+- Позитив/негатив тести
+**Priority:** P1 • **SP:** 3","actions,P1,SP:3"
+Control-flow `if`,"**Summary:** Comparator `==`, `!=`, `>`, `<`, `contains`; `then[]/else[]`.
+**AC:**
+- 5 е2е прикладів
+- Коректний трейс кроків
+**Priority:** P1 • **SP:** 5","actions,core,P1,SP:5"
+Control-flow `repeat`,"**Summary:** Ітерація `for_each`, `as`, `index_as`, `do[]`; запобігання нескінченним циклам.
+**AC:**
+- Е2е приклад з агрегацією
+**Priority:** P1 • **SP:** 5","actions,P1,SP:5"
+REST API v1: validate/execute/runs/logs/schemas,"**Summary:** Довести ендпоїнти (скелет є), обробка помилок, `wait=true`.
+**AC:**
+- Контракт відповідає OpenAPI
+- Інтеграційні тести
+**Priority:** P0 • **SP:** 3","api,P0,SP:3"
+OpenAPI 0.1 + контрактні тести,"**Summary:** Актуалізувати `api/openapi.yaml`, валідація `schemathesis`.
+**AC:**
+- Тести проходять; info.version оновлено
+**Priority:** P1 • **SP:** 3","api,ci,P1,SP:3"
+SDK TypeScript (тонкий клієнт),"**Summary:** Методи `validate`, `execute(wait)`; типи `Envelope/Run`.
+**AC:**
+- `npm pack` збирається; приклад у README
+**Priority:** P1 • **SP:** 3","sdk,P1,SP:3"
+SDK Python (тонкий клієнт),"**Summary:** Методи `validate`, `execute`; приклад використання.
+**AC:**
+- `pip install -e .` працює; інтеграційний тест
+**Priority:** P1 • **SP:** 3","sdk,P1,SP:3"
+CLI (Go): mova validate|run|logs,"**Summary:** Обгортка над REST; `--wait`; коректні exit codes.
+**AC:**
+- Демонстрація на прикладах
+**Priority:** P1 • **SP:** 5","core,api,P1,SP:5"
+Minimal Web Console (Next.js) — scaffold,"**Summary:** Сторінки: Run form, Runs list, Logs viewer.
+**AC:**
+- Локальний запуск; створення run працює
+**Priority:** P2 • **SP:** 5","console,P2,SP:5"
+Observability: Prometheus метрики,"**Summary:** `runs_started_total`, `runs_success_total`, `action_duration_ms_bucket`.
+**AC:**
+- `/metrics` доступний; приклад графа в README
+**Priority:** P1 • **SP:** 3","observability,infra,P1,SP:3"
+Docker hardening + healthcheck,"**Summary:** Distroless + nonroot (є), додати healthcheck, зменшити розмір.
+**AC:**
+- Образ < 30MB; без критичних CVE
+**Priority:** P1 • **SP:** 2","infra,security,P1,SP:2"
+GitHub Actions CI,"**Summary:** Білд Go, тести, лінт, збірка Docker, перевірка OpenAPI.
+**AC:**
+- Статус-бадж; кеш модулів; артефакти
+**Priority:** P1 • **SP:** 3","ci,infra,P1,SP:3"
+Conformance-suite v1,"**Summary:** E2E сценарії для дій/політик: успіх/помилка/таймаут/ретрай.
+**AC:**
+- `make test` запускає; читабельний звіт
+**Priority:** P0 • **SP:** 5","core,actions,ci,P0,SP:5"
+Навантажувальні смоук-тести (k6),"**Summary:** 100 VUs, 1–2 хв; p95 метрики.
+**AC:**
+- p95 внутрішнього кроку ≤ 5мс
+**Priority:** P2 • **SP:** 3","observability,infra,P2,SP:3"
+Idempotency-Key (API) — базова підтримка,"**Summary:** Приймати `Idempotency-Key`; повертати той самий `run_id` при повторі.
+**AC:**
+- Інтеграційний тест з двома однаковими запитами
+**Priority:** P2 • **SP:** 5","api,core,P2,SP:5"
+Документація + Release 0.1.0,"**Summary:** Оновити Quickstart, API Reference, CHANGELOG; тег `mova/engine:0.1.0`.
+**AC:**
+- README покриває локальний запуск/SDK/CLI
+**Priority:** P0 • **SP:** 3","docs,infra,P0,SP:3"

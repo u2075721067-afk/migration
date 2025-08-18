@@ -1,0 +1,33 @@
+---
+description: |
+  Git workflow rules for MOVA project.
+  - Enforce commit message format
+  - One commit per microtask
+  - No unrelated changes
+globs: []
+alwaysApply: true
+---
+
+Git workflow rules for MOVA project:
+
+1. Commit discipline:
+   - Exactly ONE commit per microtask.
+   - Do not group multiple unrelated edits in one commit.
+   - Do not commit automatically unless instructed.
+
+2. Commit message format:
+   <type>(scope): <imperative, <=72 chars>
+   Example:
+     feat(engine): add http_fetch action schema
+     chore(ci): add k6 smoke target
+     fix(ctx): correct SQL schema init
+
+3. Commit body (optional, short):
+   - Use bullet points
+   - Describe WHAT was changed and WHY, in ≤3 lines.
+
+4. Forbidden:
+   - Do not reformat or refactor unrelated code.
+   - Do not change files not mentioned in the task.
+   - Do not include dependency bumps unless explicitly requested.
+

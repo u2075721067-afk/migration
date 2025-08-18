@@ -1,0 +1,125 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, developer ]
+  pull_request:
+    branches: [ main, developer ]
+
+jobs:
+  lint:
+    name: Lint Python Code
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then
+          pip install -r requirements.txt
+        else
+          pip install flake8
+        fi
+        
+    - name: Run flake8 linting
+      run: |
+        flake8 MOVA_EVAL/.tools/ctx.py --max-line-length=88 --extend-ignore=E203,W503
+
+  tests:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then
+          pip install -r requirements.txt
+        else
+          pip install pytest pytest-cov
+        fi
+        
+    - name: Run tests with coverage
+      run: |
+        if [ -d "tests" ]; then
+          pytest --cov=MOVA_EVAL/.tools/ctx.py \
+                 --cov-report=term-missing \
+                 --cov-report=html \
+                 --cov-fail-under=70
+        else
+          echo "No tests directory found, skipping tests"
+        fi
+
+    - name: Upload coverage HTML report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: htmlcov/
+
+  style:
+    name: Code Style Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f "requirements.txt" ]; then
+          pip install -r requirements.txt
+        else
+          pip install black isort flake8
+        fi
+        
+    - name: Check isort formatting
+      run: |
+        isort --check-only MOVA_EVAL/.tools/ctx.py
+        
+    - name: Check black formatting
+      run: |
+        black --check --line-length 88 MOVA_EVAL/.tools/ctx.py
+
+  smoke:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install k6
+      uses: grafana/k6-action@v03.0
+      with:
+        version: latest
+        
+    - name: Run smoke tests
+      run: |
+        if [ -f "k6_mova_smoke.js" ]; then
+          k6 run k6_mova_smoke.js
+        else
+          echo "No k6_mova_smoke.js found, skipping smoke tests"
+        fi

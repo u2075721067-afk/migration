@@ -1,0 +1,33 @@
+---
+description: |
+  Command execution rules for MOVA project.
+  - Always output system commands as ready-to-run blocks
+  - User confirms execution with Run button
+globs: []
+alwaysApply: true
+---
+
+Command execution rules for MOVA project:
+
+1. After every task, always generate exact shell commands needed to apply the changes.
+   - Use macOS/Linux Bash syntax (compatible with zsh/bash).
+   - Never skip commands.
+   - Never leave them incomplete.
+
+2. Output commands in a separate fenced block (```bash ... ```), so that the editor shows a [Run] button.
+
+3. Do not execute commands automatically. 
+   - Show them to the user.
+   - The user decides when to press Run.
+
+4. Commands must be minimal and deterministic.
+   - No comments, no explanations.
+   - One command per line.
+   - Order them exactly as they should be executed.
+
+5. Examples:
+   ```bash
+   make ctx-init
+   make ctx-save TITLE="Step 3" TEXT="Add Makefile" TAGS="mova,cursor"
+   git add Makefile
+   git commit -m "feat(ctx): add Makefile targets"

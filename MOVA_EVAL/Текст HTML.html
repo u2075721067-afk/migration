@@ -1,0 +1,587 @@
+<html>
+<head>
+<meta charset="UTF-8">
+</head>
+<body>
+
+<p class="p1"><span class="s1"><h1><span class="s1">MOVA Language v3.1 — Повна специфікація (внутрішній драфт)</span></h1></span></p>
+<p class="p2"><span class="s2"></span><br></p>
+<blockquote style="margin: 0.0px 0.0px 0.0px 15.0px; font: 23.0px '.AppleSystemUIFont'; color: #111111"><span class="s3">Мета.</span><span class="s2"> Зробити MOVA не лише декларативною «мовою намірів» (</span><span class="s4">intent</span><span class="s2">), а </span><span class="s3">повноцінною DSL</span><span class="s2"> із чітким виконувальним шаром (</span><span class="s4">action</span><span class="s2">) і мінімально необхідною варіативністю (</span><span class="s4">if / repeat / call / parallel</span><span class="s2">). Формат — чистий JSON, дружній і для людей, і для LLM.</span></blockquote>
+<p class="p1"><span class="s1"><hr></span></p>
+<p class="p1"><span class="s1"><h2><span class="s1">1) Область застосування</span></h2></span></p>
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1">Цей документ визначає </span><span class="s2">формат «конверта команди»</span><span class="s1"> MOVA v3.1, модель виконання, стандартну бібліотеку дій (actions), правила інтеграції з REST/MCP, логування, безпеку та сумісність.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Специфікація </span><span class="s2">не прив’язує</span><span class="s1"> реалізацію до конкретної мови програмування: FlowRunner/Executor може бути написаний у Python/Go/JS.</span></p>
+</li></ul></span></p>
+<p class="p1"><span class="s1"><hr></span></p>
+<p class="p1"><span class="s1"><h2><span class="s1">2) Терміни (ключові поняття)</span></h2></span></p>
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1">Intent</span><span class="s2"> — бізнес-намір (</span><span class="s3">що</span><span class="s2"> треба досягти). Його формує людина або LLM.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Action</span><span class="s2"> — технічна дія (</span><span class="s3">як</span><span class="s2"> виконати). Визначається як крок або послідовність кроків.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Envelope / Конверт</span><span class="s2"> — один JSON-об’єкт, що містить </span><span class="s3">intent</span><span class="s2">, </span><span class="s3">payload</span><span class="s2">, </span><span class="s3">action</span><span class="s2">, </span><span class="s3">functions</span><span class="s2">, </span><span class="s3">context</span><span class="s2">, </span><span class="s3">meta</span><span class="s2">.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Executor / FlowRunner</span><span class="s2"> — інтерпретатор дій.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Tool</span><span class="s2"> — зовнішній або внутрішній інструмент (REST API, MCP-сервер, файлові/системні примітиви).</span></p>
+</li><li>
+<p class="p1"><span class="s1">Context</span><span class="s2"> — середовище змінних під час виконання (включно з </span><span class="s3">payload</span><span class="s2">, </span><span class="s3">last_result</span><span class="s2">, </span><span class="s3">results</span><span class="s2">).</span></p>
+</li><li>
+<p class="p1"><span class="s1">Function</span><span class="s2"> — іменований параметризований блок </span><span class="s3">action[]</span><span class="s2">, який можна викликати (</span><span class="s3">call</span><span class="s2">) як «декларативну функцію».</span></p>
+</li></ul></span></p>
+<p class="p1"><span class="s1"><hr></span></p>
+<p class="p1"><span class="s1"><h2><span class="s1">3) Формат «конверта» (Envelope)</span></h2></span></p>
+<p class="p2"><span class="s2"></span><br></p>
+<p class="p1"><span class="s1"><h3><span class="s1">3.1 Обов’язкові поля</span></h3></span></p>
+
+
+<pre><code>{
+  &quot;mova_version&quot;: &quot;3.1&quot;,
+  &quot;intent&quot;: &quot;string&quot;,
+  &quot;payload&quot;: { &quot;…&quot;: &quot;…&quot; },
+  &quot;action&quot;: [ { &quot;type&quot;: &quot;…&quot; } ]
+}</code></pre>
+
+
+<p class="p1"><span class="s1"><h3><span class="s1">3.2 Необов’язкові поля</span></h3></span></p>
+
+
+<pre><code>{
+  &quot;id&quot;: &quot;uuid-or-any&quot;,
+  &quot;functions&quot;: { &quot;&lt;name&gt;&quot;: { &quot;params&quot;: [...], &quot;action&quot;: [ ... ] } },
+  &quot;context&quot;: { &quot;session_id&quot;: &quot;…&quot;, &quot;vars&quot;: { &quot;…&quot;: &quot;…&quot; } },
+  &quot;meta&quot;: {
+    &quot;timeout_ms&quot;: 10000,
+    &quot;retry&quot;: { &quot;count&quot;: 1, &quot;backoff_ms&quot;: 500 },
+    &quot;budget&quot;: { &quot;tokens&quot;: 5000, &quot;cost_usd&quot;: 0.05 },
+    &quot;labels&quot;: [&quot;demo&quot;, &quot;lead_finder&quot;]
+  }
+}</code></pre>
+
+
+<p class="p1"><span class="s1"><h3><span class="s1">3.3 Резервовані ключі контексту (Executor встановлює/оновлює)</span></h3></span></p>
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1">payload</span><span class="s2"> — копія вхідних даних верхнього рівня.</span></p>
+</li><li>
+<p class="p1"><span class="s1">last_result</span><span class="s2"> — результат останньої дії.</span></p>
+</li><li>
+<p class="p1"><span class="s1">results</span><span class="s2"> — масив накопичених результатів (якщо потрібна агрегація).</span></p>
+</li><li>
+<p class="p1"><span class="s1">Будь-які інші змінні (через </span><span class="s2">set</span><span class="s1">) у поточному </span><span class="s2">context</span><span class="s1">.</span></p>
+</li></ul></span></p>
+<p class="p1"><span class="s1"><hr></span></p>
+<p class="p1"><span class="s1"><h2><span class="s1">4) Правила підстановок і змінних</span></h2></span></p>
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1">Підстановки в рядках — </span><span class="s2">mustache-синтаксис</span><span class="s1">: </span><span class="s3">{{var}}</span><span class="s1">, </span><span class="s3">{{payload.city}}</span><span class="s1">.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Мінімально гарантовані імена:</span></p>
+<p class="p2"><span class="s2"><ul><li>
+<p class="p1"><span class="s1">{{payload.*}}</span><span class="s2"> — поля з </span><span class="s1">payload</span><span class="s2">.</span></p>
+</li><li>
+<p class="p1"><span class="s1">{{last_result}}</span><span class="s2">, </span><span class="s1">{{results}}</span><span class="s2"> — службові.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Змінні, встановлені через </span><span class="s2">set</span><span class="s1">, напр. </span><span class="s2">{{unit_symbol}}</span><span class="s1">.</span></p>
+</li></ul></span></p>
+</li><li>
+<p class="p1"><span class="s1">Підстановки виконуються </span><span class="s2">перед викликом дії</span><span class="s1"> для всіх її параметрів.</span></p>
+</li></ul></span></p>
+<p class="p2"><span class="s2"></span><br></p>
+<blockquote style="margin: 0.0px 0.0px 0.0px 15.0px; font: 23.0px '.AppleSystemUIFont'; color: #111111"><span class="s2">Рекомендація: не змішувати різні нотації доступу до JSON (оберіть одну — напр., </span><span class="s3">payload.city</span><span class="s2">, або використовуйте окремі дії перетворення на кшталт </span><span class="s3">parse_json</span><span class="s2">/</span><span class="s3">extract</span><span class="s2">).</span></blockquote>
+<p class="p1"><span class="s1"><hr></span></p>
+<p class="p1"><span class="s1"><h2><span class="s1">5) Модель виконання</span></h2></span></p>
+<p class="p1"><span class="s1"><ol start="1"><li>
+<p class="p1"><span class="s1">Валідація конверта</span><span class="s2"> проти JSON Schema (див. §11).</span></p>
+</li><li>
+<p class="p1"><span class="s1">Ініціалізація контексту</span><span class="s2">: </span><span class="s3">payload</span><span class="s2">, порожні </span><span class="s3">results</span><span class="s2">, </span><span class="s3">last_result=null</span><span class="s2">, системні лічильники (час/бюджет).</span></p>
+</li><li>
+<p class="p1"><span class="s1">Послідовне виконання action[]</span><span class="s2">. Для кожного кроку:</span></p>
+<p class="p2"><span class="s3"><ul><li>
+<p class="p1"><span class="s1">виконуємо підстановки,</span></p>
+</li><li>
+<p class="p1"><span class="s1">застосовуємо політики </span><span class="s2">timeout</span><span class="s1">, </span><span class="s2">retry</span><span class="s1">,</span></p>
+</li><li>
+<p class="p1"><span class="s1">оновлюємо </span><span class="s2">last_result</span><span class="s1"> і/або інші змінні.</span></p>
+</li></ul></span></p>
+</li><li>
+<p class="p1"><span class="s1">Повернення результату</span><span class="s2">: за замовчуванням — </span><span class="s3">last_result</span><span class="s2"> або все, що визначив сценарій (напр., зібраний </span><span class="s3">results</span><span class="s2">).</span></p>
+</li></ol></span></p>
+<p class="p2"><span class="s2"></span><br></p>
+<p class="p1"><span class="s1"><h3><span class="s1">5.1 Зона видимості змінних</span></h3></span></p>
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1">Змінні в </span><span class="s2">context</span><span class="s1"> — </span><span class="s3">глобальні</span><span class="s1"> в межах одного виконання.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Усередині </span><span class="s2">call</span><span class="s1"> допускається </span><span class="s3">локальний контекст</span><span class="s1"> (реалізаційна деталь): виконання функції може тимчасово «накривати» імена параметрів; після завершення — відкат до попереднього контексту.</span></p>
+</li></ul></span></p>
+<p class="p2"><span class="s2"></span><br></p>
+<p class="p1"><span class="s1"><h3><span class="s1">5.2 Обробка помилок</span></h3></span></p>
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1">Кожна дія повертає </span><span class="s2">status</span><span class="s1"> у логи; при винятку — формується </span><span class="s3">помилка стандартного формату</span><span class="s1"> (див. §10).</span></p>
+</li><li>
+<p class="p1"><span class="s1">Політика </span><span class="s2">retry</span><span class="s1"> може «погасити» частину помилок; після вичерпання ретраїв — помилка піднімається до конверта.</span></p>
+</li></ul></span></p>
+<p class="p1"><span class="s1"><hr></span></p>
+<p class="p1"><span class="s1"><h2><span class="s1">6) Стандартна бібліотека дій (Actions)</span></h2></span></p>
+<p class="p2"><span class="s2"></span><br></p>
+<blockquote style="margin: 0.0px 0.0px 0.0px 15.0px; font: 23.0px '.AppleSystemUIFont'; color: #111111"><span class="s2">Мінімальний </span><span class="s4">стабільний</span><span class="s2"> набір для v3.1. Всі дії мають поле </span><span class="s3">type</span><span class="s2"> і об’єкт </span><span class="s3">params</span><span class="s2">.</span></blockquote>
+<p class="p2"><span class="s2"></span><br></p>
+<p class="p1"><span class="s1"><h3><span class="s1">6.1<span class="Apple-converted-space"> </span></span></h3><h3><span class="s1">set</span></h3></span></p>
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1">Призначення:</span><span class="s2"> встановити/оновити змінну в контексті.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Схема:</span></p>
+</li></ul></span></p>
+
+
+<pre><code>{ &quot;type&quot;: &quot;set&quot;, &quot;params&quot;: { &quot;var&quot;: &quot;string&quot;, &quot;value&quot;: &quot;any-json&quot; } }</code></pre>
+
+
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1"></span><br></p>
+</li><li>
+<p class="p1"><span class="s1">Ефект:</span><span class="s2"> </span><span class="s3">context[var] = value</span><span class="s2">.</span></p>
+</li></ul></span></p>
+<p class="p2"><span class="s2"></span><br></p>
+<p class="p1"><span class="s1"><h3><span class="s1">6.2<span class="Apple-converted-space"> </span></span></h3><h3><span class="s1">print</span></h3><h3><span class="s1"><span class="Apple-converted-space"> </span>(або<span class="Apple-converted-space"> </span></span></h3><h3><span class="s1">log</span></h3><h3><span class="s1">)</span></h3></span></p>
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1">Призначення:</span><span class="s2"> вивід значення у stdout/лог.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Схема:</span><span class="s2"> </span><span class="s3">{ "type": "print", "params": { "value": "any-json-or-string" } }</span><span class="s2">.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Ефект:</span><span class="s2"> запис у логи (Executor може дублювати у stdout).</span></p>
+</li></ul></span></p>
+<p class="p2"><span class="s2"></span><br></p>
+<p class="p1"><span class="s1"><h3><span class="s1">6.3<span class="Apple-converted-space"> </span></span></h3><h3><span class="s1">if</span></h3></span></p>
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1">Призначення:</span><span class="s2"> умовне виконання.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Варіант A (структурований):</span></p>
+</li></ul></span></p>
+
+
+<pre><code>{
+  &quot;type&quot;: &quot;if&quot;,
+  &quot;condition&quot;: { &quot;op&quot;: &quot;eq&quot;, &quot;left&quot;: &quot;{{payload.units}}&quot;, &quot;right&quot;: &quot;metric&quot; },
+  &quot;then&quot;: [ ... ],
+  &quot;else&quot;: [ ... ]
+}</code></pre>
+
+
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1">Підтримувані </span><span class="s2">op</span><span class="s1">: </span><span class="s2">eq</span><span class="s1">, </span><span class="s2">neq</span><span class="s1">, </span><span class="s2">gt</span><span class="s1">, </span><span class="s2">lt</span><span class="s1">, </span><span class="s2">in</span><span class="s1">, </span><span class="s2">contains</span><span class="s1">, </span><span class="s2">is_set</span><span class="s1">, </span><span class="s2">is_empty</span><span class="s1">.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Варіант B (рядковий вираз, спрощений):</span><span class="s2"> </span><span class="s3">"condition": "{{payload.units}} == 'metric'"</span></p>
+<blockquote style="margin: 0.0px 0.0px 0.0px 15.0px; font: 23.0px '.AppleSystemUIFont'; color: #111111"><span class="s2">Рекомендація: </span><span class="s1">віддавати перевагу структурованим умовам</span><span class="s2">.</span></blockquote>
+</li></ul></span></p>
+<p class="p2"><span class="s2"></span><br></p>
+<p class="p1"><span class="s1"><h3><span class="s1">6.4<span class="Apple-converted-space"> </span></span></h3><h3><span class="s1">repeat</span></h3></span></p>
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1">Призначення:</span><span class="s2"> цикл по масиву.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Схема:</span></p>
+</li></ul></span></p>
+
+
+<pre><code>{
+  &quot;type&quot;: &quot;repeat&quot;,
+  &quot;for_each&quot;: &quot;{{payload.cities}}&quot;,
+  &quot;as&quot;: &quot;city&quot;,
+  &quot;index_as&quot;: &quot;i&quot;,
+  &quot;do&quot;: [ ... ]
+}</code></pre>
+
+
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1"></span><br></p>
+</li><li>
+<p class="p1"><span class="s1">Ефект:</span><span class="s2"> для кожного елемента встановлює </span><span class="s3">context[as]</span><span class="s2"> (і, опц., </span><span class="s3">index_as</span><span class="s2">), виконує </span><span class="s3">do[]</span><span class="s2">.</span></p>
+</li></ul></span></p>
+<p class="p2"><span class="s2"></span><br></p>
+<p class="p1"><span class="s1"><h3><span class="s1">6.5<span class="Apple-converted-space"> </span></span></h3><h3><span class="s1">call</span></h3></span></p>
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1">Призначення:</span><span class="s2"> виклик декларативної «функції» з розділу </span><span class="s3">functions</span><span class="s2">.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Схема:</span></p>
+</li></ul></span></p>
+
+
+<pre><code>{
+  &quot;type&quot;: &quot;call&quot;,
+  &quot;params&quot;: { &quot;function&quot;: &quot;fetch_weather&quot;, &quot;args&quot;: [&quot;{{city}}&quot;, &quot;metric&quot;] }
+}</code></pre>
+
+
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1"></span><br></p>
+</li><li>
+<p class="p1"><span class="s1">Ефект:</span><span class="s2"> підставляє </span><span class="s3">params</span><span class="s2"> функції у локальний контекст, виконує її </span><span class="s3">action[]</span><span class="s2">.</span></p>
+</li></ul></span></p>
+<p class="p2"><span class="s2"></span><br></p>
+<p class="p1"><span class="s1"><h3><span class="s1">6.6<span class="Apple-converted-space"> </span></span></h3><h3><span class="s1">parallel</span></h3><h3><span class="s1"><span class="Apple-converted-space"> </span>(опційно в MVP, рекомендовано в SDK)</span></h3></span></p>
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1">Призначення:</span><span class="s2"> паралельний запуск підзадач.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Схема:</span></p>
+</li></ul></span></p>
+
+
+<pre><code>{
+  &quot;type&quot;: &quot;parallel&quot;,
+  &quot;tasks&quot;: [ [ { &quot;type&quot;: &quot;…&quot; }, { &quot;type&quot;: &quot;…&quot; } ], [ { &quot;type&quot;: &quot;…&quot; } ] ],
+  &quot;strategy&quot;: &quot;fail_fast | wait_all&quot;,
+  &quot;collect&quot;: &quot;last_result | results | none&quot;
+}</code></pre>
+
+
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1"></span><br></p>
+</li><li>
+<p class="p1"><span class="s1">Семантика:</span><span class="s2"> кожен елемент </span><span class="s3">tasks[]</span><span class="s2"> виконується як міні-послідовність; контекст </span><span class="s1">ізольований</span><span class="s2"> між тасками; після завершення — об’єднання результатів у масив (якщо </span><span class="s3">collect != none</span><span class="s2">), який стає </span><span class="s3">last_result</span><span class="s2">.</span></p>
+</li></ul></span></p>
+<p class="p2"><span class="s2"></span><br></p>
+<p class="p1"><span class="s1"><h3><span class="s1">6.7<span class="Apple-converted-space"> </span></span></h3><h3><span class="s1">sleep</span></h3></span></p>
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1">{ "type": "sleep", "params": { "seconds": 0.2 } }</span></p>
+</li></ul></span></p>
+<p class="p2"><span class="s2"></span><br></p>
+<p class="p1"><span class="s1"><h3><span class="s1">6.8<span class="Apple-converted-space"> </span></span></h3><h3><span class="s1">parse_json</span></h3><h3><span class="s1"><span class="Apple-converted-space"> </span>/<span class="Apple-converted-space"> </span></span></h3><h3><span class="s1">extract</span></h3></span></p>
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1">Призначення:</span><span class="s2"> дістати підмножину з </span><span class="s3">last_result</span><span class="s2">.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Схема (один із стандартів):</span></p>
+</li></ul></span></p>
+
+
+<pre><code>{ &quot;type&quot;: &quot;parse_json&quot;, &quot;params&quot;: { &quot;path&quot;: &quot;a.b[0].c&quot; } }</code></pre>
+
+
+<p class="p1"><span class="s1"><ul><li>
+<blockquote style="margin: 0.0px 0.0px 0.0px 15.0px; font: 23.0px '.AppleSystemUIFont'; color: #111111"><span class="s1">Рекомендація: для складних виразів — узгодити </span><span class="s2">JMESPath</span><span class="s1"> або </span><span class="s2">JSONPath</span><span class="s1"> як єдиний стандарт у проєкті.</span></blockquote>
+</li></ul></span></p>
+<p class="p2"><span class="s2"></span><br></p>
+<p class="p1"><span class="s1"><h3><span class="s1">6.9<span class="Apple-converted-space"> </span></span></h3><h3><span class="s1">http_fetch</span></h3><h3><span class="s1"><span class="Apple-converted-space"> </span>(REST)</span></h3></span></p>
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1">Схема (мінімальна):</span></p>
+</li></ul></span></p>
+
+
+<pre><code>{
+  &quot;type&quot;: &quot;http_fetch&quot;,
+  &quot;params&quot;: {
+    &quot;url&quot;: &quot;https://api.example.com/data&quot;,
+    &quot;method&quot;: &quot;GET&quot;,
+    &quot;headers&quot;: { &quot;Authorization&quot;: &quot;Bearer {{API_KEY}}&quot; },
+    &quot;query&quot;: { &quot;q&quot;: &quot;{{payload.query}}&quot; },
+    &quot;body&quot;: { &quot;…&quot;: &quot;…&quot; },
+    &quot;timeout_ms&quot;: 8000,
+    &quot;retry&quot;: { &quot;count&quot;: 2, &quot;backoff_ms&quot;: 500 }
+  }
+}</code></pre>
+
+
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1"></span><br></p>
+</li><li>
+<p class="p1"><span class="s1">Безпека:</span><span class="s2"> маскування секретів у логах; allow-list доменів; повага до бюджетів/таймаутів.</span></p>
+</li></ul></span></p>
+<p class="p2"><span class="s2"></span><br></p>
+<p class="p1"><span class="s1"><h3><span class="s1">6.10<span class="Apple-converted-space"> </span></span></h3><h3><span class="s1">mcp_call</span></h3><h3><span class="s1"><span class="Apple-converted-space"> </span>(MCP)</span></h3></span></p>
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1">Схема (узагальнено):</span></p>
+</li></ul></span></p>
+
+
+<pre><code>{
+  &quot;type&quot;: &quot;mcp_call&quot;,
+  &quot;params&quot;: {
+    &quot;server&quot;: &quot;local://files&quot; ,
+    &quot;tool&quot;: &quot;read_file&quot;,
+    &quot;arguments&quot;: { &quot;path&quot;: &quot;{{payload.path}}&quot; },
+    &quot;timeout_ms&quot;: 5000
+  }
+}</code></pre>
+
+
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1"></span><br></p>
+</li><li>
+<p class="p1"><span class="s1">Семантика:</span><span class="s2"> викликає MCP-tool через активну MCP-сесію (виконавець «під капотом»).</span></p>
+</li></ul></span></p>
+<p class="p1"><span class="s1"><hr></span></p>
+<p class="p1"><span class="s1"><h2><span class="s1">7) Мапінг<span class="Apple-converted-space"> </span></span></h2><h2><span class="s1">intent → action</span></h2></span></p>
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1">Якщо </span><span class="s2">action задано</span><span class="s1"> у конверті — використовується як є (LLM уже спланувала кроки).</span></p>
+</li><li>
+<p class="p1"><span class="s1">Якщо </span><span class="s2">action</span><span class="s1"> </span><span class="s3">відсутній</span><span class="s1"> — </span><span class="s3">Intent Resolver</span><span class="s1"> знаходить відповідний «плейбук» (шаблон </span><span class="s2">action[]</span><span class="s1">) у реєстрі проєкту за ім’ям </span><span class="s2">intent</span><span class="s1"> і підставляє його.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Результат резольвера </span><span class="s2">перед виконанням</span><span class="s1"> лінтиться/валідується так само, як і явний </span><span class="s3">action</span><span class="s1">.</span></p>
+</li></ul></span></p>
+<p class="p1"><span class="s1"><hr></span></p>
+<p class="p1"><span class="s1"><h2><span class="s1">8) Інтеграція з Tool-шаром</span></h2></span></p>
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1">Будь-який Tool може мати </span><span class="s2">два адаптери</span><span class="s1">:</span></p>
+<p class="p2"><span class="s3"><ul><li>
+<p class="p1"><span class="s1">REST</span><span class="s2"> (</span><span class="s3">http_fetch</span><span class="s2">/</span><span class="s3">rest_call</span><span class="s2">) з описом заголовків, тіла, схем вводу/виводу.</span></p>
+</li><li>
+<p class="p1"><span class="s1">MCP</span><span class="s2"> (</span><span class="s3">mcp_call</span><span class="s2">) із </span><span class="s3">tool</span><span class="s2">/</span><span class="s3">arguments</span><span class="s2"> і семантикою MCP-сесії.</span></p>
+</li></ul></span></p>
+</li><li>
+<p class="p1"><span class="s1">MOVA </span><span class="s2">не нав’язує</span><span class="s1"> спосіб, але </span><span class="s2">уніфікує формат дії</span><span class="s1">: LLM і людина завжди бачать один JSON.</span></p>
+</li></ul></span></p>
+<p class="p1"><span class="s1"><hr></span></p>
+<p class="p1"><span class="s1"><h2><span class="s1">9) Метадані, бюджети, таймаути, ретраї</span></h2></span></p>
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1">На рівні </span><span class="s2">конверта</span><span class="s1"> (</span><span class="s3">meta</span><span class="s1">) можна задавати дефолтні політики: </span><span class="s3">timeout_ms</span><span class="s1">, </span><span class="s3">retry</span><span class="s1">, </span><span class="s3">budget</span><span class="s1">.</span></p>
+</li><li>
+<p class="p1"><span class="s1">На рівні </span><span class="s2">дії</span><span class="s1"> в </span><span class="s3">params</span><span class="s1"> можна </span><span class="s2">перевизначити</span><span class="s1"> політики.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Executor </span><span class="s2">повинен</span><span class="s1"> (MUST) застосовувати найконсервативніші ліміти (менше з глобального і локального).</span></p>
+</li></ul></span></p>
+<p class="p1"><span class="s1"><hr></span></p>
+<p class="p1"><span class="s1"><h2><span class="s1">10) Формат помилок і результатів</span></h2></span></p>
+<p class="p2"><span class="s2"></span><br></p>
+<p class="p1"><span class="s1"><h3><span class="s1">10.1 Результат виконання конверта (узагальнено)</span></h3></span></p>
+
+
+<pre><code>{
+  &quot;id&quot;: &quot;…&quot;,
+  &quot;status&quot;: &quot;success | error | partial&quot;,
+  &quot;result&quot;: { &quot;…&quot;: &quot;…&quot;},          // зазвичай = last_result
+  &quot;error&quot;: null,
+  &quot;logs&quot;: [ { &quot;t&quot;: 1734023.1, &quot;step&quot;: 3, &quot;type&quot;: &quot;http_fetch&quot;, &quot;status&quot;: 200 } ],
+  &quot;usage&quot;: { &quot;duration_ms&quot;: 1200, &quot;retries&quot;: 1, &quot;cost_usd&quot;: 0.003 }
+}</code></pre>
+
+
+<p class="p1"><span class="s1"><h3><span class="s1">10.2 Помилка</span></h3></span></p>
+
+
+<pre><code>{
+  &quot;type&quot;: &quot;TimeoutError&quot;,
+  &quot;code&quot;: &quot;HTTP_TIMEOUT&quot;,
+  &quot;message&quot;: &quot;Request exceeded 8000ms&quot;,
+  &quot;details&quot;: { &quot;url&quot;: &quot;https://…&quot; },
+  &quot;retriable&quot;: true
+}</code></pre>
+
+
+<p class="p1"><span class="s1"><hr></span></p>
+<p class="p1"><span class="s1"><h2><span class="s1">11) JSON-схеми (нормативні контури)</span></h2></span></p>
+<p class="p2"><span class="s2"></span><br></p>
+<blockquote style="margin: 0.0px 0.0px 0.0px 15.0px; font: 23.0px '.AppleSystemUIFont'; color: #111111"><span class="s2">Точні </span><span class="s3">$id</span><span class="s2">/посилання ви оформите у своєму репозиторії. Нижче — ядро.</span></blockquote>
+<p class="p2"><span class="s2"></span><br></p>
+<p class="p1"><span class="s1"><h3><span class="s1">11.1 Envelope (скорочено)</span></h3></span></p>
+
+
+<pre><code>{
+  &quot;$schema&quot;:&quot;http://json-schema.org/draft-07/schema#&quot;,
+  &quot;type&quot;:&quot;object&quot;,
+  &quot;required&quot;:[&quot;intent&quot;,&quot;payload&quot;,&quot;action&quot;],
+  &quot;properties&quot;:{
+    &quot;mova_version&quot;:{&quot;type&quot;:&quot;string&quot;,&quot;pattern&quot;:&quot;^3\\.1(\\..+)?$&quot;},
+    &quot;id&quot;:{&quot;type&quot;:&quot;string&quot;},
+    &quot;intent&quot;:{&quot;type&quot;:&quot;string&quot;,&quot;minLength&quot;:1},
+    &quot;payload&quot;:{&quot;type&quot;:&quot;object&quot;},
+    &quot;action&quot;:{&quot;type&quot;:&quot;array&quot;,&quot;items&quot;:{&quot;$ref&quot;:&quot;#/definitions/action&quot;}},
+    &quot;functions&quot;:{&quot;type&quot;:&quot;object&quot;},
+    &quot;context&quot;:{&quot;type&quot;:&quot;object&quot;},
+    &quot;meta&quot;:{&quot;type&quot;:&quot;object&quot;}
+  },
+  &quot;definitions&quot;:{
+    &quot;action&quot;:{
+      &quot;type&quot;:&quot;object&quot;,
+      &quot;required&quot;:[&quot;type&quot;],
+      &quot;properties&quot;:{
+        &quot;type&quot;:{&quot;type&quot;:&quot;string&quot;},
+        &quot;params&quot;:{&quot;type&quot;:&quot;object&quot;},
+        &quot;then&quot;:{&quot;type&quot;:&quot;array&quot;,&quot;items&quot;:{&quot;$ref&quot;:&quot;#/definitions/action&quot;}},
+        &quot;else&quot;:{&quot;type&quot;:&quot;array&quot;,&quot;items&quot;:{&quot;$ref&quot;:&quot;#/definitions/action&quot;}},
+        &quot;do&quot;:{&quot;type&quot;:&quot;array&quot;,&quot;items&quot;:{&quot;$ref&quot;:&quot;#/definitions/action&quot;}},
+        &quot;tasks&quot;:{&quot;type&quot;:&quot;array&quot;,&quot;items&quot;:{&quot;type&quot;:&quot;array&quot;,&quot;items&quot;:{&quot;$ref&quot;:&quot;#/definitions/action&quot;}}}
+      }
+    }
+  },
+  &quot;additionalProperties&quot;:true
+}</code></pre>
+
+
+<p class="p1"><span class="s1"><h3><span class="s1">11.2 Приклади схем для дій</span></h3></span></p>
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1">set</span><span class="s2">:</span></p>
+</li></ul></span></p>
+
+
+<pre><code>{ &quot;type&quot;:&quot;object&quot;,&quot;required&quot;:[&quot;type&quot;,&quot;params&quot;],
+  &quot;properties&quot;:{
+    &quot;type&quot;:{&quot;const&quot;:&quot;set&quot;},
+    &quot;params&quot;:{&quot;type&quot;:&quot;object&quot;,&quot;required&quot;:[&quot;var&quot;,&quot;value&quot;],
+      &quot;properties&quot;:{&quot;var&quot;:{&quot;type&quot;:&quot;string&quot;},&quot;value&quot;:{}}
+    }
+  }
+}</code></pre>
+
+
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1"></span><br></p>
+</li><li>
+<p class="p1"><span class="s1">http_fetch</span><span class="s2"> (ядро):</span></p>
+</li></ul></span></p>
+
+
+<pre><code>{ &quot;type&quot;:&quot;object&quot;,&quot;required&quot;:[&quot;type&quot;,&quot;params&quot;],
+  &quot;properties&quot;:{
+    &quot;type&quot;:{&quot;const&quot;:&quot;http_fetch&quot;},
+    &quot;params&quot;:{
+      &quot;type&quot;:&quot;object&quot;,&quot;required&quot;:[&quot;url&quot;],
+      &quot;properties&quot;:{
+        &quot;url&quot;:{&quot;type&quot;:&quot;string&quot;,&quot;minLength&quot;:1},
+        &quot;method&quot;:{&quot;type&quot;:&quot;string&quot;,&quot;enum&quot;:[&quot;GET&quot;,&quot;POST&quot;,&quot;PUT&quot;,&quot;PATCH&quot;,&quot;DELETE&quot;],&quot;default&quot;:&quot;GET&quot;},
+        &quot;headers&quot;:{&quot;type&quot;:&quot;object&quot;},
+        &quot;query&quot;:{&quot;type&quot;:&quot;object&quot;},
+        &quot;body&quot;:{},
+        &quot;timeout_ms&quot;:{&quot;type&quot;:&quot;integer&quot;,&quot;minimum&quot;:1},
+        &quot;retry&quot;:{&quot;type&quot;:&quot;object&quot;,&quot;properties&quot;:{
+          &quot;count&quot;:{&quot;type&quot;:&quot;integer&quot;,&quot;minimum&quot;:0},
+          &quot;backoff_ms&quot;:{&quot;type&quot;:&quot;integer&quot;,&quot;minimum&quot;:0}
+        }}
+      }
+    }
+  }
+}</code></pre>
+
+
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1"></span><br></p>
+</li><li>
+<p class="p1"><span class="s1">mcp_call</span><span class="s2"> (ядро):</span></p>
+</li></ul></span></p>
+
+
+<pre><code>{ &quot;type&quot;:&quot;object&quot;,&quot;required&quot;:[&quot;type&quot;,&quot;params&quot;],
+  &quot;properties&quot;:{
+    &quot;type&quot;:{&quot;const&quot;:&quot;mcp_call&quot;},
+    &quot;params&quot;:{
+      &quot;type&quot;:&quot;object&quot;,&quot;required&quot;:[&quot;server&quot;,&quot;tool&quot;,&quot;arguments&quot;],
+      &quot;properties&quot;:{
+        &quot;server&quot;:{&quot;type&quot;:&quot;string&quot;},
+        &quot;tool&quot;:{&quot;type&quot;:&quot;string&quot;},
+        &quot;arguments&quot;:{&quot;type&quot;:&quot;object&quot;},
+        &quot;timeout_ms&quot;:{&quot;type&quot;:&quot;integer&quot;,&quot;minimum&quot;:1}
+      }
+    }
+  }
+}</code></pre>
+
+
+<p class="p1"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"></span><br></p>
+<p class="p2"><span class="s1">(Аналогічно для </span><span class="s2">if/repeat/call/parallel/parse_json/print/sleep</span><span class="s1">.)</span></p>
+<p class="p3"><span class="s3"><hr></span></p>
+<p class="p3"><span class="s3"><h2><span class="s1">12) Інтроспекція та реєстр можливостей</span></h2></span></p>
+<p class="p3"><span class="s3"><ul><li>
+<p class="p1"><span class="s1">Executor/SDK </span><span class="s2">повинен</span><span class="s1"> вміти видати </span><span class="s2">машиночитний список</span><span class="s1"> доступних </span><span class="s3">intent</span><span class="s1">/</span><span class="s3">action</span><span class="s1">/</span><span class="s3">functions</span><span class="s1"> із прикладами.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Це </span><span class="s2">рекомендується включати в промпт LLM</span><span class="s1">, щоб підвищити валідність відповідей.</span></p>
+</li></ul></span></p>
+<p class="p3"><span class="s3"><hr></span></p>
+<p class="p3"><span class="s3"><h2><span class="s1">13) Журналювання та спостереження</span></h2></span></p>
+<p class="p3"><span class="s3"><ul><li>
+<p class="p1"><span class="s1">Мінімум: JSONL-трейс кроків (</span><span class="s2">timestamp</span><span class="s1">, </span><span class="s2">step</span><span class="s1">, </span><span class="s2">type</span><span class="s1">, </span><span class="s2">params_redacted</span><span class="s1">, </span><span class="s2">status</span><span class="s1">, </span><span class="s2">duration_ms</span><span class="s1">, </span><span class="s2">error?</span><span class="s1">).</span></p>
+</li><li>
+<p class="p1"><span class="s1">Маскувати секрети у </span><span class="s2">headers</span><span class="s1">, </span><span class="s2">body</span><span class="s1">, </span><span class="s2">arguments</span><span class="s1">.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Опціонально: метрики </span><span class="s2">usage</span><span class="s1"> (час, ретраї, зовнішні виклики), облік бюджетів.</span></p>
+</li></ul></span></p>
+<p class="p3"><span class="s3"><hr></span></p>
+<p class="p3"><span class="s3"><h2><span class="s1">14) Безпека</span></h2></span></p>
+<p class="p3"><span class="s3"><ul><li>
+<p class="p1"><span class="s1">Allow-list</span><span class="s2"> для зовнішніх доменів/ресурсів; </span><span class="s1">deny-list</span><span class="s2"> для небезпечних дій.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Таймаути/ретраї</span><span class="s2"> за замовчуванням; заборона безмежних </span><span class="s3">repeat</span><span class="s2">.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Підтвердження ризикових дій</span><span class="s2"> (видалення файлів, зовнішні POST) — за політикою середовища.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Редакція секретів</span><span class="s2"> у логах та помилках.</span></p>
+</li></ul></span></p>
+<p class="p3"><span class="s3"><hr></span></p>
+<p class="p3"><span class="s3"><h2><span class="s1">15) Версіонування і сумісність</span></h2></span></p>
+<p class="p3"><span class="s3"><ul><li>
+<p class="p1"><span class="s1">Поле </span><span class="s2">mova_version: "3.1"</span><span class="s1"> обов’язкове. Дрібні сумісні розширення — </span><span class="s2">3.1.x</span><span class="s1">.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Executor </span><span class="s2">повинен</span><span class="s1"> відхиляти конверти з major-несумісною версією.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Файли агентів/шаблонів вказують діапазон підтримки: </span><span class="s2">"mova_spec": "&gt;=3.1 &lt;3.2"</span><span class="s1">.</span></p>
+</li></ul></span></p>
+<p class="p3"><span class="s3"><hr></span></p>
+<p class="p3"><span class="s3"><h2><span class="s1">16) Приклади</span></h2></span></p>
+<p class="p1"><span class="s1"></span><br></p>
+<p class="p3"><span class="s3"><h3><span class="s1">16.1 «Lead Finder» (скорочено)</span></h3></span></p>
+
+
+<pre><code>{
+  &quot;mova_version&quot;: &quot;3.1&quot;,
+  &quot;intent&quot;: &quot;find_local_leads&quot;,
+  &quot;payload&quot;: { &quot;query&quot;: &quot;coffee roasters Berlin&quot;, &quot;max_results&quot;: 5 },
+  &quot;functions&quot;: {
+    &quot;search_leads&quot;: {
+      &quot;params&quot;: [&quot;q&quot;, &quot;num&quot;],
+      &quot;action&quot;: [
+        { &quot;type&quot;:&quot;http_fetch&quot;,&quot;params&quot;:{
+          &quot;url&quot;:&quot;https://google.serper.dev/search&quot;,&quot;method&quot;:&quot;POST&quot;,
+          &quot;headers&quot;:{&quot;X-API-KEY&quot;:&quot;{{SERPER_API_KEY}}&quot;,&quot;Content-Type&quot;:&quot;application/json&quot;},
+          &quot;body&quot;:{&quot;q&quot;:&quot;{{q}}&quot;,&quot;num&quot;:&quot;{{num}}&quot;}, &quot;timeout_ms&quot;:12000 } },
+        { &quot;type&quot;:&quot;parse_json&quot;, &quot;params&quot;: { &quot;path&quot;: &quot;organic&quot; } },
+        { &quot;type&quot;:&quot;set&quot;, &quot;params&quot;: { &quot;var&quot;: &quot;items&quot;, &quot;value&quot;: &quot;{{last_result}}&quot; } }
+      ]
+    }
+  },
+  &quot;action&quot;: [
+    { &quot;type&quot;:&quot;call&quot;,&quot;params&quot;:{&quot;function&quot;:&quot;search_leads&quot;,&quot;args&quot;:[&quot;{{payload.query}}&quot;, &quot;10&quot;]} },
+    { &quot;type&quot;:&quot;repeat&quot;,&quot;for_each&quot;:&quot;{{items}}&quot;,&quot;as&quot;:&quot;it&quot;,&quot;do&quot;:[
+      { &quot;type&quot;:&quot;set&quot;,&quot;params&quot;:{&quot;var&quot;:&quot;title&quot;,&quot;value&quot;:&quot;{{it.title}}&quot;} },
+      { &quot;type&quot;:&quot;set&quot;,&quot;params&quot;:{&quot;var&quot;:&quot;url&quot;,&quot;value&quot;:&quot;{{it.link}}&quot;} },
+      { &quot;type&quot;:&quot;set&quot;,&quot;params&quot;:{&quot;var&quot;:&quot;snippet&quot;,&quot;value&quot;:&quot;{{it.snippet}}&quot;} }
+    ]},
+    { &quot;type&quot;:&quot;print&quot;,&quot;params&quot;:{&quot;value&quot;:&quot;Done&quot;} }
+  ]
+}</code></pre>
+
+
+<p class="p1"><span class="s1"><h3><span class="s1">16.2 MCP-виклик (читання локального файлу)</span></h3></span></p>
+
+
+<pre><code>{
+  &quot;mova_version&quot;: &quot;3.1&quot;,
+  &quot;intent&quot;: &quot;read_local_doc&quot;,
+  &quot;payload&quot;: { &quot;path&quot;: &quot;docs/plan.md&quot; },
+  &quot;action&quot;: [
+    { &quot;type&quot;:&quot;mcp_call&quot;,&quot;params&quot;:{
+      &quot;server&quot;:&quot;local://files&quot;,&quot;tool&quot;:&quot;read_file&quot;,
+      &quot;arguments&quot;:{&quot;path&quot;:&quot;{{payload.path}}&quot;},
+      &quot;timeout_ms&quot;:3000 } },
+    { &quot;type&quot;:&quot;set&quot;,&quot;params&quot;:{&quot;var&quot;:&quot;doc&quot;,&quot;value&quot;:&quot;{{last_result.content}}&quot;} }
+  ]
+}</code></pre>
+
+
+<p class="p1"><span class="s1"><hr></span></p>
+<p class="p1"><span class="s1"><h2><span class="s1">17) Критерії приймання (конформність)</span></h2></span></p>
+<p class="p1"><span class="s1"><ul><li>
+<p class="p1"><span class="s1">Конверт проходить валідацію </span><span class="s2">Envelope Schema</span><span class="s1">.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Мінімальний набір дій (</span><span class="s2">set/if/repeat/call/parse_json/http_fetch/print/sleep</span><span class="s1">) успішно виконується на еталонних тестах.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Логи кроків видаються у JSONL з редакцією секретів.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Для REST-викликів — дотримано таймаути/ретраї; для MCP — узгоджено семантику сесії.</span></p>
+</li><li>
+<p class="p1"><span class="s1">Внутрішній лінтер виявляє типові помилки підстановок і конфлікти змінних.</span></p>
+</li></ul></span></p>
+<p class="p1"><span class="s1"><hr></span></p>
+<p class="p1"><span class="s1"><h3><span class="s1">Заключення</span></h3></span></p>
+<p class="p2"><span class="s2"></span><br></p>
+<p class="p3"><span class="s2">MOVA v3.1 фіксує </span><span class="s3">двошарову модель</span><span class="s2"> — </span><span class="s4">intent</span><span class="s2"> (командний) + </span><span class="s4">action</span><span class="s2"> (виконавчий) — і </span><span class="s3">мінімальну варіативність</span><span class="s2">, достатню для 80% агентних сценаріїв без переходу в повноцінну загального призначення мову. Це зберігає простоту для людей, дисциплінує LLM (через схеми) і дає єдиний, переносимий формат для REST/MCP-інструментів.</span></p>
+
+</body>
+</html>

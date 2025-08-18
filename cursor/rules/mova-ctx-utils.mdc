@@ -1,0 +1,15 @@
+---
+description: |
+  Utility rule for MOVA project.
+  - Always include context database utilities
+  - Attach schema and ctx.py for reference
+globs:
+  - ".tools/ctx.py"
+  - "schema.sql"
+alwaysApply: true
+---
+
+Always include the contents of `.tools/ctx.py` and `schema.sql` in your working memory.  
+Use them whenever you need to save or restore context snapshots.  
+Never rewrite or refactor these files unless explicitly instructed.  
+

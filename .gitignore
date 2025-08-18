@@ -1,0 +1,93 @@
+# Database files
+/MOVA_EVAL/state/*.db
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environment and virtual environment
+.env
+.venv/
+venv/
+ENV/
+env/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Cursor IDE
+.cursor/context/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+# === Python cache ===
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# === macOS trash ===
+.DS_Store
+
+# === Logs / temp ===
+*.log
+*.tmp
+
+# === Virtual envs / dotenv ===
+.venv/
+.env
+
+# === Cursor local state (not rules) ===
+.cursor/context/
+
+# === Databases (all .db files, especially MOVA_EVAL/state) ===
+*.db
+
+# === Coverage artifacts ===
+.coverage
+htmlcov/
