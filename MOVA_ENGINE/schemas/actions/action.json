@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MOVA Action Schema",
+  "description": "Base schema for all action types",
+  "type": "object",
+  "required": ["type", "name"],
+  "properties": {
+            "type": {
+          "type": "string",
+          "description": "Type of action to execute",
+          "enum": [
+            "http_fetch",
+            "set",
+            "if",
+            "repeat",
+            "print",
+            "call",
+            "parse_json",
+            "sleep",
+            "transform",
+            "validate",
+            "notify",
+            "wait",
+            "parallel"
+          ]
+        },
+    "name": {
+      "type": "string",
+      "description": "Unique name for this action within the workflow",
+      "minLength": 1,
+      "maxLength": 100,
+      "pattern": "^[a-zA-Z0-9_-]+$"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of the action"
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Whether this action is enabled",
+      "default": true
+    },
+    "timeout": {
+      "type": "integer",
+      "description": "Action-specific timeout in seconds",
+      "minimum": 1,
+      "maximum": 3600
+    },
+    "retry": {
+      "$ref": "../retry-policy.json"
+    },
+    "on_success": {
+      "type": "array",
+      "description": "Actions to execute on success",
+      "items": {
+        "type": "string"
+      }
+    },
+    "on_failure": {
+      "type": "array",
+      "description": "Actions to execute on failure",
+      "items": {
+        "type": "string"
+      }
+    },
+    "config": {
+      "type": "object",
+      "description": "Action-specific configuration",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

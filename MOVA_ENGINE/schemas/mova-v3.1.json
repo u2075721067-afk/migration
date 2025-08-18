@@ -1,0 +1,176 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MOVA v3.1 Envelope Schema",
+  "description": "JSON Schema for MOVA Automation Engine workflow envelopes",
+  "type": "object",
+  "required": ["intent", "payload", "actions"],
+  "properties": {
+    "intent": {
+      "type": "object",
+      "description": "Workflow intent and metadata",
+      "required": ["name", "version", "description"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Unique name of the workflow",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "version": {
+          "type": "string",
+          "description": "Workflow version (semantic versioning)",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of the workflow",
+          "maxLength": 500
+        },
+        "author": {
+          "type": "string",
+          "description": "Author of the workflow",
+          "maxLength": 100
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Tags for categorization"
+        },
+        "timeout": {
+          "type": "integer",
+          "description": "Maximum execution time in seconds",
+          "minimum": 1,
+          "maximum": 86400
+        },
+        "retry": {
+          "type": "object",
+          "description": "Retry policy configuration",
+          "properties": {
+            "max_attempts": {
+              "type": "integer",
+              "description": "Maximum number of retry attempts",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "backoff": {
+              "type": "string",
+              "enum": ["linear", "exponential", "fixed"],
+              "description": "Backoff strategy for retries"
+            },
+            "delay": {
+              "type": "integer",
+              "description": "Delay between retries in seconds",
+              "minimum": 1
+            }
+          }
+        },
+        "budget": {
+          "type": "object",
+          "description": "Resource budget constraints",
+          "properties": {
+            "max_memory_mb": {
+              "type": "integer",
+              "description": "Maximum memory usage in MB",
+              "minimum": 1
+            },
+            "max_cpu_percent": {
+              "type": "integer",
+              "description": "Maximum CPU usage percentage",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "description": "Input data and context for the workflow",
+      "additionalProperties": true
+    },
+    "actions": {
+      "type": "array",
+      "description": "Array of actions to execute",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["type", "name"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Type of action to execute",
+            "enum": [
+              "http_fetch",
+              "set",
+              "if",
+              "repeat",
+              "log",
+              "transform",
+              "validate",
+              "notify",
+              "wait",
+              "parallel"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "description": "Unique name for this action within the workflow",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of the action"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether this action is enabled",
+            "default": true
+          },
+          "timeout": {
+            "type": "integer",
+            "description": "Action-specific timeout in seconds"
+          },
+          "retry": {
+            "type": "object",
+            "description": "Action-specific retry policy"
+          },
+          "on_success": {
+            "type": "array",
+            "description": "Actions to execute on success",
+            "items": {
+              "type": "string"
+            }
+          },
+          "on_failure": {
+            "type": "array",
+            "description": "Actions to execute on failure",
+            "items": {
+              "type": "string"
+            }
+          },
+          "config": {
+            "type": "object",
+            "description": "Action-specific configuration",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "variables": {
+      "type": "object",
+      "description": "Global variables accessible throughout the workflow",
+      "additionalProperties": true
+    },
+    "secrets": {
+      "type": "object",
+      "description": "Secret values (will be encrypted)",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}

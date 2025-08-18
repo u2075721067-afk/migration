@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MOVA v3.1 Envelope Schema",
+  "description": "Main schema for MOVA workflow envelope validation",
+  "type": "object",
+  "required": ["intent", "actions"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "description": "Workflow metadata and configuration",
+      "properties": {
+        "version": {
+          "type": "string",
+          "description": "MOVA specification version",
+          "pattern": "^\\d+\\.\\d+$"
+        },
+        "name": {
+          "type": "string",
+          "description": "Workflow name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Workflow description"
+        },
+        "timeout": {
+          "type": "integer",
+          "description": "Maximum execution time in seconds",
+          "minimum": 1,
+          "maximum": 86400
+        }
+      },
+      "additionalProperties": true
+    },
+    "intent": {
+      "$ref": "intent.json"
+    },
+    "payload": {
+      "type": "object",
+      "description": "Input data and context for the workflow",
+      "additionalProperties": true
+    },
+    "actions": {
+      "type": "array",
+      "description": "Array of actions to execute",
+      "minItems": 1,
+      "items": {
+        "$ref": "actions/action.json"
+      }
+    },
+    "variables": {
+      "type": "object",
+      "description": "Global variables accessible throughout the workflow",
+      "additionalProperties": true
+    },
+    "secrets": {
+      "type": "object",
+      "description": "Secret values (will be encrypted)",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "parse_json",
+  "description": "Parse JSON data using JSONPath expressions",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "./action.json"
+    }
+  ],
+  "properties": {
+    "config": {
+      "type": "object",
+      "properties": {
+        "jsonpath": {
+          "type": "string",
+          "description": "JSONPath expression to extract data",
+          "examples": ["$.data.items[*].name", "$.results[0].value", "$.user.email"]
+        },
+        "source": {
+          "type": "string",
+          "description": "Source of data to parse (default: last_result)",
+          "enum": ["last_result", "payload"],
+          "default": "last_result"
+        },
+        "variable": {
+          "type": "string",
+          "description": "Variable name to store parsed result"
+        }
+      },
+      "required": ["jsonpath"],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "sleep",
+  "description": "Pause execution for specified duration",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "./action.json"
+    }
+  ],
+  "properties": {
+    "config": {
+      "type": "object",
+      "properties": {
+        "seconds": {
+          "type": "number",
+          "description": "Duration to sleep in seconds",
+          "minimum": 0,
+          "maximum": 3600,
+          "examples": [1, 5.5, 60]
+        }
+      },
+      "required": ["seconds"],
+      "additionalProperties": false
+    }
+  }
+}

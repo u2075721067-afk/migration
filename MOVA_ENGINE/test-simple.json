@@ -1,0 +1,20 @@
+{
+  "intent": {
+    "name": "test-workflow",
+    "version": "1.0.0",
+    "description": "Simple test workflow"
+  },
+  "payload": {
+    "test": "data"
+  },
+  "actions": [
+    {
+      "type": "set",
+      "name": "test-action",
+      "config": {
+        "variable": "test_var",
+        "value": "test_value"
+      }
+    }
+  ]
+}

@@ -1,0 +1,267 @@
+### MOVA API Demo Requests
+### Use with VS Code REST Client extension or Insomnia
+
+### 1. Health Check
+GET http://localhost:8080/health
+
+### 2. API Introspection
+GET http://localhost:8080/v1/introspect
+
+### 3. List Available Schemas
+GET http://localhost:8080/v1/schemas
+
+### 4. Get Envelope Schema
+GET http://localhost:8080/v1/schemas/envelope
+
+### 5. Get Action Schema
+GET http://localhost:8080/v1/schemas/action
+
+### 6. Validate Simple Workflow
+POST http://localhost:8080/v1/validate
+Content-Type: application/json
+
+{
+  "mova_version": "3.1",
+  "intent": {
+    "name": "test_workflow",
+    "version": "1.0.0",
+    "description": "Simple test workflow"
+  },
+  "payload": {
+    "message": "Hello World"
+  },
+  "actions": [
+    {
+      "type": "set",
+      "name": "greeting",
+      "config": {
+        "var": "greeting",
+        "value": "{{payload.message}}"
+      }
+    },
+    {
+      "type": "print",
+      "name": "print_greeting",
+      "config": {
+        "value": "{{greeting}}"
+      }
+    }
+  ]
+}
+
+### 7. Execute Workflow Synchronously
+POST http://localhost:8080/v1/execute?wait=true
+Content-Type: application/json
+
+{
+  "mova_version": "3.1",
+  "intent": {
+    "name": "test_workflow",
+    "version": "1.0.0",
+    "description": "Simple test workflow"
+  },
+  "payload": {
+    "message": "Hello World"
+  },
+  "actions": [
+    {
+      "type": "set",
+      "name": "greeting",
+      "config": {
+        "var": "greeting",
+        "value": "{{payload.message}}"
+      }
+    },
+    {
+      "type": "print",
+      "name": "print_greeting",
+      "config": {
+        "value": "{{greeting}}"
+      }
+    }
+  ]
+}
+
+### 8. Execute Workflow Asynchronously
+POST http://localhost:8080/v1/execute
+Content-Type: application/json
+
+{
+  "mova_version": "3.1",
+  "intent": {
+    "name": "async_workflow",
+    "version": "1.0.0",
+    "description": "Asynchronous test workflow"
+  },
+  "payload": {
+    "delay": 2
+  },
+  "actions": [
+    {
+      "type": "sleep",
+      "name": "wait",
+      "config": {
+        "seconds": "{{payload.delay}}"
+      }
+    },
+    {
+      "type": "set",
+      "name": "result",
+      "config": {
+        "var": "result",
+        "value": "Workflow completed after {{payload.delay}} seconds"
+      }
+    }
+  ]
+}
+
+### 9. Get Execution Status (replace {run_id} with actual ID)
+GET http://localhost:8080/v1/runs/{run_id}
+
+### 10. Get Execution Logs (replace {run_id} with actual ID)
+GET http://localhost:8080/v1/runs/{run_id}/logs
+
+### 11. Cancel Execution (replace {run_id} with actual ID)
+DELETE http://localhost:8080/v1/runs/{run_id}
+
+### 12. Complex Workflow with HTTP Fetch
+POST http://localhost:8080/v1/execute?wait=true
+Content-Type: application/json
+
+{
+  "mova_version": "3.1",
+  "intent": {
+    "name": "http_workflow",
+    "version": "1.0.0",
+    "description": "Workflow with HTTP request"
+  },
+  "payload": {
+    "url": "https://httpbin.org/json"
+  },
+  "actions": [
+    {
+      "type": "http_fetch",
+      "name": "fetch_data",
+      "config": {
+        "url": "{{payload.url}}",
+        "method": "GET",
+        "timeout_ms": 5000
+      }
+    },
+    {
+      "type": "parse_json",
+      "name": "extract_title",
+      "config": {
+        "path": "slideshow.title"
+      }
+    },
+    {
+      "type": "set",
+      "name": "save_result",
+      "config": {
+        "var": "title",
+        "value": "{{last_result}}"
+      }
+    }
+  ]
+}
+
+### 13. Workflow with Conditional Logic
+POST http://localhost:8080/v1/execute?wait=true
+Content-Type: application/json
+
+{
+  "mova_version": "3.1",
+  "intent": {
+    "name": "conditional_workflow",
+    "version": "1.0.0",
+    "description": "Workflow with if/else logic"
+  },
+  "payload": {
+    "user_type": "premium"
+  },
+  "actions": [
+    {
+      "type": "if",
+      "name": "check_user_type",
+      "config": {
+        "condition": {
+          "op": "eq",
+          "left": "{{payload.user_type}}",
+          "right": "premium"
+        }
+      },
+      "then": [
+        {
+          "type": "set",
+          "name": "set_premium",
+          "config": {
+            "var": "access_level",
+            "value": "full"
+          }
+        }
+      ],
+      "else": [
+        {
+          "type": "set",
+          "name": "set_basic",
+          "config": {
+            "var": "access_level",
+            "value": "limited"
+          }
+        }
+      ]
+    },
+    {
+      "type": "print",
+      "name": "show_access",
+      "config": {
+        "value": "Access level: {{access_level}}"
+      }
+    }
+  ]
+}
+
+### 14. Workflow with Loop
+POST http://localhost:8080/v1/execute?wait=true
+Content-Type: application/json
+
+{
+  "mova_version": "3.1",
+  "intent": {
+    "name": "loop_workflow",
+    "version": "1.0.0",
+    "description": "Workflow with repeat loop"
+  },
+  "payload": {
+    "items": ["apple", "banana", "cherry"]
+  },
+  "actions": [
+    {
+      "type": "repeat",
+      "name": "process_items",
+      "config": {
+        "for_each": "{{payload.items}}",
+        "as": "item",
+        "index_as": "i"
+      },
+      "do": [
+        {
+          "type": "set",
+          "name": "process_item",
+          "config": {
+            "var": "processed_{{i}}",
+            "value": "{{item}}"
+          }
+        },
+        {
+          "type": "print",
+          "name": "log_item",
+          "config": {
+            "value": "Processed {{item}} at index {{i}}"
+          }
+        }
+      ]
+    }
+  ]
+}

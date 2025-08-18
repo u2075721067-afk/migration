@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MOVA Intent Schema",
+  "description": "Workflow intent metadata and configuration",
+  "type": "object",
+  "required": ["description"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique name of the workflow",
+      "minLength": 1,
+      "maxLength": 100,
+      "pattern": "^[a-zA-Z0-9_-]+$"
+    },
+    "version": {
+      "type": "string",
+      "description": "Workflow version (semantic versioning)",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of the workflow",
+      "maxLength": 500
+    },
+    "author": {
+      "type": "string",
+      "description": "Author of the workflow",
+      "maxLength": 100
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags for categorization"
+    },
+    "timeout": {
+      "type": "integer",
+      "description": "Maximum execution time in seconds",
+      "minimum": 1,
+      "maximum": 86400
+    },
+    "retry": {
+      "$ref": "./retry-policy.json"
+    },
+    "budget": {
+      "$ref": "./budget-constraints.json"
+    }
+  },
+  "additionalProperties": false
+}

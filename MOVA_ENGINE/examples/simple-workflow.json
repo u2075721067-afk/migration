@@ -1,0 +1,73 @@
+{
+  "intent": {
+    "name": "simple-data-processing",
+    "version": "1.0.0",
+    "description": "A simple workflow that fetches data, processes it, and logs the result",
+    "author": "MOVA Team",
+    "tags": ["example", "data-processing", "http"],
+    "timeout": 300,
+    "retry": {
+      "max_attempts": 3,
+      "backoff": "exponential",
+      "delay": 5
+    },
+    "budget": {
+      "max_memory_mb": 512,
+      "max_cpu_percent": 50
+    }
+  },
+  "payload": {
+    "api_url": "https://jsonplaceholder.typicode.com/posts/1",
+    "process_data": true,
+    "log_level": "info"
+  },
+  "actions": [
+    {
+      "type": "http_fetch",
+      "name": "fetch-data",
+      "description": "Fetch data from external API",
+      "enabled": true,
+      "timeout": 30,
+      "config": {
+        "method": "GET",
+        "url": "{{payload.api_url}}",
+        "headers": {
+          "User-Agent": "MOVA-Engine/1.0"
+        }
+      }
+    },
+    {
+      "type": "set",
+      "name": "process-data",
+      "description": "Process the fetched data",
+      "enabled": true,
+      "config": {
+        "variable": "processed_data",
+        "value": {
+          "title": "{{fetch-data.output.title}}",
+          "body": "{{fetch-data.output.body}}",
+          "processed_at": "{{now}}",
+          "status": "completed"
+        }
+      }
+    },
+    {
+      "type": "log",
+      "name": "log-result",
+      "description": "Log the processing result",
+      "enabled": true,
+      "config": {
+        "level": "{{payload.log_level}}",
+        "message": "Data processing completed successfully",
+        "data": {
+          "input_url": "{{payload.api_url}}",
+          "result": "{{processed_data}}"
+        }
+      }
+    }
+  ],
+  "variables": {
+    "default_timeout": 60,
+    "retry_delay": 5
+  }
+}

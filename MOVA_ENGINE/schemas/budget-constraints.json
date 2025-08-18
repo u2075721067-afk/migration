@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MOVA Budget Constraints Schema",
+  "description": "Resource budget constraints for workflows",
+  "type": "object",
+  "properties": {
+    "max_memory_mb": {
+      "type": "integer",
+      "description": "Maximum memory usage in MB",
+      "minimum": 1,
+      "maximum": 32768
+    },
+    "max_cpu_percent": {
+      "type": "integer",
+      "description": "Maximum CPU usage percentage",
+      "minimum": 1,
+      "maximum": 100
+    },
+    "max_disk_mb": {
+      "type": "integer",
+      "description": "Maximum disk usage in MB",
+      "minimum": 1,
+      "maximum": 1048576
+    }
+  },
+  "additionalProperties": false
+}

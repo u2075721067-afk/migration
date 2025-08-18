@@ -1,0 +1,72 @@
+{
+  "meta": {
+    "version": "3.1",
+    "name": "JSON Parsing Example",
+    "description": "Demonstrates parse_json action with JSONPath expressions",
+    "timeout": 30
+  },
+  "intent": {
+    "description": "Parse JSON data from various sources",
+    "tags": ["parsing", "jsonpath", "example"]
+  },
+  "actions": [
+    {
+      "name": "set_sample_data",
+      "type": "set",
+      "config": {
+        "variable": "sample_data",
+        "value": {
+          "users": [
+            {"id": 1, "name": "Alice", "email": "alice@example.com", "active": true},
+            {"id": 2, "name": "Bob", "email": "bob@example.com", "active": false},
+            {"id": 3, "name": "Charlie", "email": "charlie@example.com", "active": true}
+          ],
+          "stats": {
+            "total": 3,
+            "active": 2,
+            "inactive": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "parse_user_names",
+      "type": "parse_json",
+      "config": {
+        "jsonpath": "$.users[*].name",
+        "source": "sample_data",
+        "variable": "user_names"
+      }
+    },
+    {
+      "name": "parse_active_users",
+      "type": "parse_json",
+      "config": {
+        "jsonpath": "$.users[?(@.active==true)]",
+        "source": "sample_data",
+        "variable": "active_users"
+      }
+    },
+    {
+      "name": "parse_stats",
+      "type": "parse_json",
+      "config": {
+        "jsonpath": "$.stats.total",
+        "source": "sample_data",
+        "variable": "total_users"
+      }
+    },
+    {
+      "name": "print_results",
+      "type": "print",
+      "config": {
+        "message": "Parsing results",
+        "data": {
+          "user_names": "{{user_names}}",
+          "active_users": "{{active_users}}",
+          "total_users": "{{total_users}}"
+        }
+      }
+    }
+  ]
+}

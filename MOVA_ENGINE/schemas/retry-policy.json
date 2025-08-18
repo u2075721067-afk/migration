@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MOVA Retry Policy Schema",
+  "description": "Retry policy configuration for actions",
+  "type": "object",
+  "required": ["max_attempts", "backoff", "delay"],
+  "properties": {
+    "max_attempts": {
+      "type": "integer",
+      "description": "Maximum number of retry attempts",
+      "minimum": 0,
+      "maximum": 10
+    },
+    "backoff": {
+      "type": "string",
+      "enum": ["linear", "exponential", "fixed"],
+      "description": "Backoff strategy for retries"
+    },
+    "delay": {
+      "type": "integer",
+      "description": "Delay between retries in seconds",
+      "minimum": 1,
+      "maximum": 3600
+    }
+  },
+  "additionalProperties": false
+}

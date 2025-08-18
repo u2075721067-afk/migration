@@ -1,0 +1,43 @@
+{
+  "name": "@mova-engine/web-console",
+  "version": "1.0.0",
+  "description": "Web Console for MOVA Automation Engine",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "14.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "axios": "^1.6.0",
+    "react-flow-renderer": "^10.3.17",
+    "tailwindcss": "^3.3.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.31"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "typescript": "^5.0.0",
+    "eslint": "^8.0.0",
+    "eslint-config-next": "14.0.0"
+  },
+  "keywords": [
+    "mova",
+    "automation",
+    "workflow",
+    "engine",
+    "web",
+    "console",
+    "nextjs",
+    "react"
+  ],
+  "author": "MOVA Engine Team",
+  "license": "MIT"
+}

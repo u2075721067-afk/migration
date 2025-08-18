@@ -1,8 +1,16 @@
-# Development dependencies for CI/CD pipeline
-flake8>=6.0.0
+# MOVA Language v3.1 Dependencies
+# Core dependencies
+requests>=2.31.0
+typing-extensions>=4.0.0
+
+# Development dependencies
 pytest>=7.0.0
 pytest-cov>=4.0.0
-
-# Additional development tools (optional)
 black>=23.0.0
+flake8>=6.0.0
 isort>=5.12.0
+
+# Optional dependencies for enhanced functionality
+# aiohttp>=3.8.0  # For async HTTP requests
+# pydantic>=2.0.0  # For data validation
+# jinja2>=3.1.0  # For template processing

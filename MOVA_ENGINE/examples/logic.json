@@ -1,0 +1,119 @@
+{
+  "intent": {
+    "name": "logic-demo",
+    "version": "1.0.0",
+    "description": "Demonstration of logic actions: set, print, if, repeat, call",
+    "author": "MOVA Team",
+    "tags": ["example", "logic", "actions", "demo"]
+  },
+  "payload": {
+    "user_name": "Developer",
+    "items": ["apple", "banana", "cherry"],
+    "condition": true
+  },
+  "actions": [
+    {
+      "type": "set",
+      "name": "set-user-info",
+      "description": "Set user information variables",
+      "config": {
+        "variable": "greeting",
+        "value": "Hello, {{payload.user_name}}!"
+      }
+    },
+    {
+      "type": "print",
+      "name": "print-greeting",
+      "description": "Print the greeting message",
+      "config": {
+        "message": "User greeting set",
+        "data": "{{greeting}}"
+      }
+    },
+    {
+      "type": "if",
+      "name": "check-condition",
+      "description": "Check if condition is true and set flag",
+      "config": {
+        "condition": "{{payload.condition}}",
+        "then": ["set-flag-true"],
+        "else": ["set-flag-false"]
+      }
+    },
+    {
+      "type": "set",
+      "name": "set-flag-true",
+      "description": "Set flag to true when condition is met",
+      "config": {
+        "variable": "flag",
+        "value": true
+      }
+    },
+    {
+      "type": "set",
+      "name": "set-flag-false",
+      "description": "Set flag to false when condition is not met",
+      "config": {
+        "variable": "flag",
+        "value": false
+      }
+    },
+    {
+      "type": "print",
+      "name": "print-flag",
+      "description": "Print the flag value",
+      "config": {
+        "message": "Flag value",
+        "data": "{{flag}}"
+      }
+    },
+    {
+      "type": "repeat",
+      "name": "process-items",
+      "description": "Process each item in the array",
+      "config": {
+        "iterations": "{{payload.items}}",
+        "actions": ["print-item"]
+      }
+    },
+    {
+      "type": "print",
+      "name": "print-item",
+      "description": "Print current item (used in repeat)",
+      "config": {
+        "message": "Processing item",
+        "data": "{{current_item}}"
+      }
+    },
+    {
+      "type": "call",
+      "name": "call-external-function",
+      "description": "Call an external function",
+      "config": {
+        "function": "processData",
+        "params": {
+          "user": "{{payload.user_name}}",
+          "items_count": "{{len(payload.items)}}",
+          "flag": "{{flag}}"
+        }
+      }
+    },
+    {
+      "type": "print",
+      "name": "final-summary",
+      "description": "Print final summary",
+      "config": {
+        "message": "Workflow completed successfully",
+        "data": {
+          "greeting": "{{greeting}}",
+          "flag": "{{flag}}",
+          "items_processed": "{{len(payload.items)}}"
+        }
+      }
+    }
+  ],
+  "variables": {
+    "default_timeout": 60,
+    "max_retries": 3
+  }
+}

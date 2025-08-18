@@ -1,0 +1,45 @@
+📑 Технічне завдання (MOVA Automation Engine MVP)
+1. Контекст і готовність
+
+Вже реалізовано:
+
+ctx.py + SQLite БД для збереження/відновлення контексту (init, save, last, show).
+
+CI/CD GitHub Actions з лінтингом, тестами, coverage ≥70%.
+
+Pytest-тести для ctx.py (93% покриття).
+
+Pre-commit hooks (flake8, black, isort).
+
+Це створює стабільний фундамент для переходу до ядра Engine.
+
+2. Мета MVP
+
+Створити MOVA Automation Engine — інтерпретатор JSON-DSL MOVA v3.1, який:
+
+приймає envelope (intent + payload + action[]),
+
+виконує базові actions за правилами специфікації,
+
+забезпечує валідацію JSON Schema, контроль timeout/retry/budget,
+
+логування у JSONL,
+
+має REST API + CLI + мінімальний SDK (TS/Py).
+
+3. Архітектура (MVP)
+
+Executor (Core Engine, Go/Rust) — інтерпретує action[], керує контекстом, застосовує політики.
+
+REST API (Go HTTP/Gin) — /v1/execute, /v1/validate, /v1/runs/{id}, /v1/schemas, /v1/introspect.
+
+CLI — mova run file.json, mova validate file.json, mova logs <run_id>.
+
+SDK — обгортки для REST (TypeScript + Python).
+
+Web Console (Next.js) — мінімально: форма запуску envelope, перегляд останніх логів.
+
+Інфраструктура — Docker image, CI (GitHub Actions), Prometheus-метрики + stdout JSONL.
+
+4. Специфікація MOVA v3.1 (витяг)
+Envelope
