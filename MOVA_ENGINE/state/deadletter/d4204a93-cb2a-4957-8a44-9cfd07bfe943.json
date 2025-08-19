@@ -1,0 +1,77 @@
+{
+  "id": "d4204a93-cb2a-4957-8a44-9cfd07bfe943",
+  "run_id": "test_run_1755594307",
+  "created_at": "2025-08-19T11:05:07.989405+02:00",
+  "envelope": {
+    "intent": {
+      "name": "test-workflow",
+      "version": "1.0",
+      "description": "Test workflow for DLQ testing",
+      "tags": [
+        "test",
+        "dlq"
+      ]
+    },
+    "payload": null,
+    "actions": [
+      {
+        "type": "http_fetch",
+        "name": "fetch_data",
+        "config": {
+          "url": "https://api.example.com/data"
+        }
+      }
+    ]
+  },
+  "context": {
+    "run_id": "test_run_1755594307",
+    "workflow_id": "",
+    "start_time": "2025-08-19T11:05:07.989287+02:00",
+    "status": "failed",
+    "variables": {
+      "test_var": "test_value"
+    },
+    "results": {
+      "fetch_data": {
+        "action_name": "fetch_data",
+        "status": "failed",
+        "start_time": "2025-08-19T11:05:07.989288+02:00",
+        "error": "Connection timeout",
+        "attempts": 3
+      }
+    },
+    "logs": null
+  },
+  "failed_action": {
+    "type": "http_fetch",
+    "name": "fetch_data",
+    "config": {
+      "url": "https://api.example.com/data"
+    }
+  },
+  "error_details": {
+    "last_error": "Connection timeout after 30 seconds",
+    "error_history": [
+      "Attempt 1: Connection refused",
+      "Attempt 2: Timeout after 15s",
+      "Attempt 3: Connection timeout after 30 seconds"
+    ],
+    "failure_reason": "max_retries_exceeded",
+    "attempts": 3,
+    "environment": {
+      "executor_version": "1.0.0",
+      "go_version": "1.23.0"
+    }
+  },
+  "metadata": {
+    "source": "executor",
+    "priority": 1,
+    "tags": [
+      "test",
+      "dlq"
+    ],
+    "workflow_type": "test-workflow",
+    "retry_count": 0
+  },
+  "status": "archived"
+}

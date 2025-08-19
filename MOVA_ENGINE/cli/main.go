@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/mova-engine/mova-engine/cli/commands"
 	"github.com/mova-engine/mova-engine/core/validator"
 	"github.com/spf13/cobra"
 )
@@ -39,6 +40,7 @@ This tool allows you to:
 	rootCmd.AddCommand(validateCmd)
 	rootCmd.AddCommand(logsCmd)
 	rootCmd.AddCommand(statusCmd)
+	rootCmd.AddCommand(commands.NewDLQCommand())
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)

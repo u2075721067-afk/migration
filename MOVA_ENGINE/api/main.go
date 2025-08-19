@@ -39,6 +39,12 @@ func main() {
 		log.Fatalf("Failed to initialize validator: %v", err)
 	}
 
+	// Initialize DLQ and retry manager
+	dlqPath := getEnv("MOVA_DLQ_PATH", "./state/deadletter")
+	dlq := executor.NewDeadLetterQueue(dlqPath)
+	retryManager := executor.NewRetryManager(dlq)
+	dlqService := NewDLQService(dlq, retryManager, exec)
+
 	// Set Gin mode
 	if os.Getenv("GIN_MODE") == "release" {
 		gin.SetMode(gin.ReleaseMode)
@@ -72,6 +78,18 @@ func main() {
 
 		// Introspection
 		v1.GET("/introspect", handleIntrospect)
+
+		// Dead Letter Queue
+		dlqGroup := v1.Group("/dlq")
+		{
+			dlqGroup.GET("", dlqService.handleListDLQEntries)
+			dlqGroup.GET("/:id", dlqService.handleGetDLQEntry)
+			dlqGroup.POST("/:id/retry", dlqService.handleRetryDLQEntry)
+			dlqGroup.PUT("/:id/status", dlqService.handleUpdateDLQStatus)
+			dlqGroup.POST("/:id/archive", dlqService.handleArchiveDLQEntry)
+			dlqGroup.DELETE("/:id", dlqService.handleDeleteDLQEntry)
+			dlqGroup.GET("/stats", dlqService.handleDLQStats)
+		}
 	}
 
 	// Health check
@@ -482,4 +500,11 @@ func updateSystemMetrics() {
 			)
 		}
 	}
+}
+
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }

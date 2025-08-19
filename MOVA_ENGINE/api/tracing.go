@@ -36,7 +36,7 @@ func InitTracing() func() {
 		resource.WithAttributes(
 			semconv.ServiceNameKey.String("mova-engine"),
 			semconv.ServiceVersionKey.String("1.0.0"),
-			semconv.DeploymentEnvironmentKey.String(getEnv("ENVIRONMENT", "development")),
+			semconv.DeploymentEnvironmentKey.String(getTracingEnv("ENVIRONMENT", "development")),
 		),
 	)
 	if err != nil {
@@ -94,7 +94,10 @@ func SetSpanError(ctx context.Context, err error) {
 	span := oteltrace.SpanFromContext(ctx)
 	if span.IsRecording() {
 		span.RecordError(err)
-		span.SetStatus(oteltrace.StatusCodeError, err.Error())
+		// Note: Using simplified error status for compatibility
+		span.AddEvent("error", oteltrace.WithAttributes(
+			attribute.String("error.message", err.Error()),
+		))
 	}
 }
 
@@ -106,7 +109,7 @@ func SetSpanAttributes(ctx context.Context, attrs ...attribute.KeyValue) {
 	}
 }
 
-func getEnv(key, defaultValue string) string {
+func getTracingEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
 	}
