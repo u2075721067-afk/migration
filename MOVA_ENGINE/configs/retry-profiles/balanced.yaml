@@ -1,0 +1,8 @@
+name: balanced
+description: "Balanced retry with exponential backoff for general use cases"
+maxRetries: 5
+initialDelay: "500ms"
+maxDelay: "10s"
+backoffMultiplier: 2.0
+jitter: 0.2
+timeout: "30s"

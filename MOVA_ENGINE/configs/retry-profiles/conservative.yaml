@@ -1,0 +1,8 @@
+name: conservative
+description: "Conservative retry with long intervals for resource-intensive operations"
+maxRetries: 10
+initialDelay: "2s"
+maxDelay: "60s"
+backoffMultiplier: 2.5
+jitter: 0.3
+timeout: "300s"

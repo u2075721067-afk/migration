@@ -352,7 +352,7 @@ func (s *DLQService) handleDLQStats(c *gin.Context) {
 		} else if entry.CreatedAt.Before(*stats["oldest_entry"].(*time.Time)) {
 			stats["oldest_entry"] = &entry.CreatedAt
 		}
-		
+
 		if stats["newest_entry"] == nil {
 			stats["newest_entry"] = &entry.CreatedAt
 		} else if entry.CreatedAt.After(*stats["newest_entry"].(*time.Time)) {

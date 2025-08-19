@@ -1,0 +1,8 @@
+name: aggressive
+description: "Fast retry with minimal backoff for time-sensitive operations"
+maxRetries: 3
+initialDelay: "100ms"
+maxDelay: "1s"
+backoffMultiplier: 1.5
+jitter: 0.1
+timeout: "5s"
