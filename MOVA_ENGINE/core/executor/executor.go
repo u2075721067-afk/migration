@@ -1,13 +1,18 @@
 package executor
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/google/uuid"
+	"github.com/mova-engine/mova-engine/config"
 	"github.com/sirupsen/logrus"
 )
 
@@ -118,18 +123,33 @@ type BudgetConstraints struct {
 
 // Executor is the main workflow execution engine
 type Executor struct {
-	logger *logrus.Logger
+	logger         *logrus.Logger
+	securityConfig *config.SecurityConfig
 }
 
 // NewExecutor creates a new MOVA executor instance
 func NewExecutor() *Executor {
 	return &Executor{
-		logger: logrus.New(),
+		logger:         logrus.New(),
+		securityConfig: config.DefaultSecurityConfig(),
 	}
 }
 
-// Execute runs a MOVA workflow envelope
+// NewExecutorWithConfig creates a new MOVA executor instance with custom security config
+func NewExecutorWithConfig(securityConfig *config.SecurityConfig) *Executor {
+	return &Executor{
+		logger:         logrus.New(),
+		securityConfig: securityConfig,
+	}
+}
+
+// Execute runs a MOVA workflow envelope with security controls
 func (e *Executor) Execute(ctx context.Context, envelope MOVAEnvelope) (*ExecutionContext, error) {
+	// Apply workflow timeout from security config
+	workflowTimeout := e.securityConfig.Timeouts.WorkflowTimeout
+	workflowCtx, cancel := context.WithTimeout(ctx, workflowTimeout)
+	defer cancel()
+
 	execCtx := &ExecutionContext{
 		RunID:      uuid.New().String(),
 		WorkflowID: envelope.Intent.Name,
@@ -158,12 +178,26 @@ func (e *Executor) Execute(ctx context.Context, envelope MOVAEnvelope) (*Executi
 
 	// Execute actions sequentially for MVP
 	for _, action := range envelope.Actions {
+		// Check if workflow timeout has been exceeded
+		select {
+		case <-workflowCtx.Done():
+			execCtx.Status = StatusFailed
+			now := time.Now()
+			execCtx.EndTime = &now
+			e.logExecution(execCtx, "workflow", "timeout", "workflow", "Workflow execution timed out", map[string]interface{}{
+				"timeout": workflowTimeout.String(),
+			}, nil)
+			return execCtx, fmt.Errorf("workflow timeout after %v", workflowTimeout)
+		default:
+			// Continue with action execution
+		}
+
 		if action.Enabled != nil && !*action.Enabled {
 			e.logExecution(execCtx, "action", "skip", action.Name, "Action skipped (disabled)", nil, nil)
 			continue
 		}
 
-		result := e.executeAction(ctx, execCtx, action)
+		result := e.executeAction(workflowCtx, execCtx, action)
 		execCtx.Results[action.Name] = result
 
 		if result.Status == ActionStatusFailed {
@@ -196,32 +230,49 @@ func (e *Executor) executeAction(ctx context.Context, execCtx *ExecutionContext,
 		Attempts:   1,
 	}
 
+	// Apply action timeout from security config
+	actionTimeout := e.securityConfig.Timeouts.ActionTimeout
+	actionCtx, cancel := context.WithTimeout(ctx, actionTimeout)
+	defer cancel()
+
 	e.logExecution(execCtx, "action", "start", action.Name, "Action execution started", map[string]interface{}{
 		"action_type": action.Type,
 		"config":      action.Config,
+		"timeout":     actionTimeout.String(),
 	}, nil)
 
-	// TODO: Implement action type handlers
+	// Execute action with timeout control
 	switch action.Type {
 	case "http_fetch":
-		result = e.executeHTTPFetch(ctx, execCtx, action)
+		result = e.executeHTTPFetch(actionCtx, execCtx, action)
 	case "set":
-		result = e.executeSet(ctx, execCtx, action)
+		result = e.executeSet(actionCtx, execCtx, action)
 	case "if":
-		result = e.executeIf(ctx, execCtx, action)
+		result = e.executeIf(actionCtx, execCtx, action)
 	case "repeat":
-		result = e.executeRepeat(ctx, execCtx, action)
+		result = e.executeRepeat(actionCtx, execCtx, action)
 	case "print":
-		result = e.executePrint(ctx, execCtx, action)
+		result = e.executePrint(actionCtx, execCtx, action)
 	case "call":
-		result = e.executeCall(ctx, execCtx, action)
+		result = e.executeCall(actionCtx, execCtx, action)
 	case "parse_json":
-		result = e.executeParseJSON(ctx, execCtx, action)
+		result = e.executeParseJSON(actionCtx, execCtx, action)
 	case "sleep":
-		result = e.executeSleep(ctx, execCtx, action)
+		result = e.executeSleep(actionCtx, execCtx, action)
 	default:
 		result.Status = ActionStatusFailed
 		result.Error = fmt.Sprintf("unsupported action type: %s", action.Type)
+	}
+
+	// Check if action was cancelled due to timeout
+	if actionCtx.Err() == context.DeadlineExceeded {
+		result.Status = ActionStatusFailed
+		result.Error = fmt.Sprintf("action timeout after %v", actionTimeout)
+
+		e.logExecution(execCtx, "action", "timeout", action.Name, "Action execution timed out", map[string]interface{}{
+			"action_type": action.Type,
+			"timeout":     actionTimeout.String(),
+		}, nil)
 	}
 
 	endTime := time.Now()
@@ -238,7 +289,7 @@ func (e *Executor) executeAction(ctx context.Context, execCtx *ExecutionContext,
 	return result
 }
 
-// executeHTTPFetch executes an HTTP request action
+// executeHTTPFetch executes an HTTP request action with security controls
 func (e *Executor) executeHTTPFetch(ctx context.Context, execCtx *ExecutionContext, action Action) ActionResult {
 	startTime := time.Now()
 	result := ActionResult{
@@ -273,36 +324,192 @@ func (e *Executor) executeHTTPFetch(ctx context.Context, execCtx *ExecutionConte
 		method = "GET" // default method
 	}
 
-	// Get headers and body (for future implementation)
-	_, _ = config["headers"]
-	_, _ = config["body"]
+	// Security validation: Check if URL is allowed
+	if err := e.securityConfig.HTTP.ValidateURL(url); err != nil {
+		result.Status = ActionStatusFailed
+		result.Error = fmt.Sprintf("security validation failed: %v", err)
+		endTime := time.Now()
+		result.EndTime = &endTime
+
+		e.logExecution(execCtx, "action", "http_fetch", action.Name, "HTTP request blocked by security policy", map[string]interface{}{
+			"url":    url,
+			"method": method,
+			"error":  result.Error,
+		}, nil)
+		return result
+	}
+
+	// Get headers
+	var headers map[string]interface{}
+	if h, ok := config["headers"].(map[string]interface{}); ok {
+		headers = h
+	}
+
+	// Get body
+	var body interface{}
+	if b, exists := config["body"]; exists {
+		body = b
+	}
 
 	// Get timeout
 	timeoutMs, _ := config["timeout_ms"].(float64)
 	if timeoutMs == 0 {
-		timeoutMs = 30000 // default 30 seconds
+		timeoutMs = float64(e.securityConfig.Timeouts.HTTPTimeout.Milliseconds())
 	}
 
-	// Log the HTTP request
+	// Apply security timeout limits
+	maxTimeoutMs := float64(e.securityConfig.Timeouts.HTTPTimeout.Milliseconds())
+	if timeoutMs > maxTimeoutMs {
+		timeoutMs = maxTimeoutMs
+	}
+
+	// Log the HTTP request (with redacted sensitive data)
 	e.logExecution(execCtx, "action", "http_fetch", action.Name, "HTTP request started", map[string]interface{}{
 		"url":     url,
 		"method":  method,
 		"timeout": timeoutMs,
+		"headers": headers, // Will be redacted by logExecution
 	}, nil)
 
-	// TODO: Implement actual HTTP request
-	// For now, just simulate success
-	responseData := map[string]interface{}{
-		"status_code": 200,
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: time.Duration(timeoutMs) * time.Millisecond,
+	}
+
+	// Don't follow redirects if disabled in security config
+	if !e.securityConfig.HTTP.FollowRedirects {
+		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		}
+	}
+
+	// Prepare request body
+	var bodyReader io.Reader
+	var contentType string
+	if body != nil {
+		switch v := body.(type) {
+		case string:
+			bodyReader = bytes.NewBufferString(v)
+			contentType = "text/plain"
+		case map[string]interface{}:
+			jsonData, err := json.Marshal(v)
+			if err != nil {
+				result.Status = ActionStatusFailed
+				result.Error = fmt.Sprintf("failed to marshal JSON body: %v", err)
+				endTime := time.Now()
+				result.EndTime = &endTime
+				return result
+			}
+			bodyReader = bytes.NewBuffer(jsonData)
+			contentType = "application/json"
+		default:
+			// Try to marshal as JSON
+			jsonData, err := json.Marshal(v)
+			if err != nil {
+				result.Status = ActionStatusFailed
+				result.Error = fmt.Sprintf("unsupported body type: %T", v)
+				endTime := time.Now()
+				result.EndTime = &endTime
+				return result
+			}
+			bodyReader = bytes.NewBuffer(jsonData)
+			contentType = "application/json"
+		}
+	}
+
+	// Create HTTP request
+	req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
+	if err != nil {
+		result.Status = ActionStatusFailed
+		result.Error = fmt.Sprintf("failed to create HTTP request: %v", err)
+		endTime := time.Now()
+		result.EndTime = &endTime
+		return result
+	}
+
+	// Set User-Agent
+	req.Header.Set("User-Agent", e.securityConfig.HTTP.UserAgent)
+
+	// Set Content-Type if we have a body
+	if bodyReader != nil && contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
+
+	// Add custom headers
+	if headers != nil {
+		for key, value := range headers {
+			if strValue, ok := value.(string); ok {
+				req.Header.Set(key, strValue)
+			}
+		}
+	}
+
+	// Execute HTTP request
+	resp, err := client.Do(req)
+	if err != nil {
+		result.Status = ActionStatusFailed
+		result.Error = fmt.Sprintf("HTTP request failed: %v", err)
+		endTime := time.Now()
+		result.EndTime = &endTime
+
+		e.logExecution(execCtx, "action", "http_fetch", action.Name, "HTTP request failed", map[string]interface{}{
+			"url":    url,
+			"method": method,
+			"error":  result.Error,
+		}, nil)
+		return result
+	}
+	defer resp.Body.Close()
+
+	// Check response size limit
+	responseBody, err := io.ReadAll(io.LimitReader(resp.Body, e.securityConfig.HTTP.MaxResponseSize))
+	if err != nil {
+		result.Status = ActionStatusFailed
+		result.Error = fmt.Sprintf("failed to read response body: %v", err)
+		endTime := time.Now()
+		result.EndTime = &endTime
+		return result
+	}
+
+	// Parse response body as JSON if possible
+	var responseData interface{}
+	if len(responseBody) > 0 {
+		// Try to parse as JSON first
+		if err := json.Unmarshal(responseBody, &responseData); err != nil {
+			// If JSON parsing fails, use as string
+			responseData = string(responseBody)
+		}
+	}
+
+	// Prepare response headers (without sensitive data)
+	responseHeaders := make(map[string]string)
+	for key, values := range resp.Header {
+		if len(values) > 0 {
+			responseHeaders[key] = values[0]
+		}
+	}
+
+	// Create response data
+	output := map[string]interface{}{
+		"status_code": resp.StatusCode,
+		"status":      resp.Status,
+		"headers":     RedactSecrets(responseHeaders),
+		"body":        responseData,
 		"url":         url,
 		"method":      method,
-		"response":    "HTTP request simulated successfully",
 	}
 
 	result.Status = ActionStatusCompleted
-	result.Output = responseData
+	result.Output = output
 	endTime := time.Now()
 	result.EndTime = &endTime
+
+	e.logExecution(execCtx, "action", "http_fetch", action.Name, "HTTP request completed", map[string]interface{}{
+		"url":         url,
+		"method":      method,
+		"status_code": resp.StatusCode,
+		"body_size":   len(responseBody),
+	}, output)
 
 	return result
 }
@@ -805,18 +1012,33 @@ func (e *Executor) executeSleep(ctx context.Context, execCtx *ExecutionContext, 
 	return result
 }
 
-// logExecution adds a log entry to the execution context
+// logExecution adds a log entry to the execution context with secret redaction
 func (e *Executor) logExecution(execCtx *ExecutionContext, step, actionType, action, message string, params map[string]interface{}, data map[string]interface{}) {
+	// Redact sensitive information from message
+	redactedMessage := RedactSecretsInString(message)
+
+	// Redact sensitive information from params and data
+	var redactedParams map[string]interface{}
+	var redactedData map[string]interface{}
+
+	if params != nil {
+		redactedParams = RedactSecretsInterface(params)
+	}
+
+	if data != nil {
+		redactedData = RedactSecretsInterface(data)
+	}
+
 	log := ExecutionLog{
 		Timestamp:      time.Now(),
 		Level:          "info",
 		Step:           step,
 		Type:           actionType,
 		Action:         action,
-		Message:        message,
-		ParamsRedacted: params,
+		Message:        redactedMessage,
+		ParamsRedacted: redactedParams,
 		Status:         "success",
-		Data:           data,
+		Data:           redactedData,
 	}
 	execCtx.Logs = append(execCtx.Logs, log)
 }
