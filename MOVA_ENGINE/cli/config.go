@@ -1,4 +1,4 @@
-package cli
+package main
 
 import (
 	"context"
@@ -114,7 +114,7 @@ var (
 
 func init() {
 	// Add config command to root
-	rootCmd.AddCommand(configCmd)
+	// rootCmd.AddCommand(configCmd) // This should be added in main.go
 
 	// Add subcommands to config
 	configCmd.AddCommand(configExportCmd)

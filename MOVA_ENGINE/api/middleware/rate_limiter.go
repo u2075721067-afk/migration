@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"../../core/budget"
+	"github.com/mova-engine/mova-engine/core/budget"
 )
 
 // RateLimiterMiddleware provides API rate limiting functionality
