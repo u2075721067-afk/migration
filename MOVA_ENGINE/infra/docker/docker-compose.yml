@@ -66,13 +66,26 @@ services:
   grafana:
     image: grafana/grafana:latest
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
       - grafana_data:/var/lib/grafana
     depends_on:
       - prometheus
+    networks:
+      - mova-network
+
+  mova-console:
+    build:
+      context: ../../../mova-console
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_MOVA_API_URL=http://mova-api:8080
+    depends_on:
+      - mova-api
     networks:
       - mova-network
 
