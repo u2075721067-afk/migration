@@ -173,3 +173,4 @@ func LogSystemEvent(event string, fields logrus.Fields) {
 
 	logger.WithFields(fields).Info("System event")
 }
+

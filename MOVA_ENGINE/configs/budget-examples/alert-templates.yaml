@@ -1,0 +1,192 @@
+# Alert Templates Configuration
+# This file contains example alert message templates
+
+# CPU Alert Template
+cpu_alert_template:
+  id: "cpu-alert-template"
+  name: "CPU Usage Alert"
+  subject: "🚨 High CPU Usage Alert - {{.BudgetName}}"
+  body: |
+    CPU usage has exceeded the configured threshold.
+    
+    📊 Details:
+    • Budget: {{.BudgetName}}
+    • Scope: {{.Scope}}:{{.ScopeID}}
+    • Current Usage: {{.PercentageUsed}}%
+    • Threshold: 80%
+    • Severity: {{.Severity}}
+    • Timestamp: {{.Timestamp}}
+    
+    🔧 Recommended Actions:
+    • Check for resource-intensive workflows
+    • Review system load and scaling options
+    • Consider increasing resource limits if appropriate
+    
+    📈 This alert will not repeat for 5 minutes.
+  format: "text"
+
+# Memory Alert Template
+memory_alert_template:
+  id: "memory-alert-template"
+  name: "Memory Usage Alert"
+  subject: "⚠️ High Memory Usage Alert - {{.BudgetName}}"
+  body: |
+    Memory usage has exceeded the configured threshold.
+    
+    📊 Details:
+    • Budget: {{.BudgetName}}
+    • Scope: {{.Scope}}:{{.ScopeID}}
+    • Current Usage: {{.PercentageUsed}}%
+    • Threshold: 85%
+    • Severity: {{.Severity}}
+    • Timestamp: {{.Timestamp}}
+    
+    🔧 Recommended Actions:
+    • Investigate memory leaks in workflows
+    • Review workflow memory requirements
+    • Consider memory optimization or scaling
+    
+    📈 This alert will not repeat for 3 minutes.
+  format: "text"
+
+# API Rate Limit Alert Template
+api_limit_alert_template:
+  id: "api-limit-alert-template"
+  name: "API Rate Limit Alert"
+  subject: "🚦 API Rate Limit Approaching - {{.BudgetName}}"
+  body: |
+    API request rate is approaching the configured limit.
+    
+    📊 Details:
+    • Budget: {{.BudgetName}}
+    • Scope: {{.Scope}}:{{.ScopeID}}
+    • Current Usage: {{.PercentageUsed}}%
+    • Threshold: 90%
+    • Severity: {{.Severity}}
+    • Timestamp: {{.Timestamp}}
+    
+    🔧 Recommended Actions:
+    • Review API usage patterns
+    • Implement request caching if applicable
+    • Consider rate limit adjustments for legitimate use cases
+    
+    📈 This alert will not repeat for 10 minutes.
+  format: "text"
+
+# Retry Budget Alert Template
+retry_alert_template:
+  id: "retry-alert-template"
+  name: "Retry Budget Alert"
+  subject: "🔄 Retry Budget Alert - {{.BudgetName}}"
+  body: |
+    Retry budget is approaching the configured limit.
+    
+    📊 Details:
+    • Budget: {{.BudgetName}}
+    • Scope: {{.Scope}}:{{.ScopeID}}
+    • Current Usage: {{.PercentageUsed}}%
+    • Threshold: 80%
+    • Severity: {{.Severity}}
+    • Timestamp: {{.Timestamp}}
+    
+    🔧 Recommended Actions:
+    • Investigate failing operations causing retries
+    • Review retry policies and thresholds
+    • Check external service availability
+    
+    📈 This alert will not repeat for 15 minutes.
+  format: "text"
+
+# Critical System Alert Template
+critical_alert_template:
+  id: "critical-alert-template"
+  name: "Critical System Alert"
+  subject: "🚨 CRITICAL: System Resource Alert - {{.BudgetName}}"
+  body: |
+    CRITICAL: System resource usage has reached dangerous levels.
+    
+    📊 Details:
+    • Budget: {{.BudgetName}}
+    • Type: {{.BudgetType}}
+    • Scope: {{.Scope}}:{{.ScopeID}}
+    • Current Usage: {{.PercentageUsed}}%
+    • Threshold: 95%
+    • Severity: {{.Severity}}
+    • Timestamp: {{.Timestamp}}
+    
+    🚨 IMMEDIATE ACTION REQUIRED:
+    • System may become unstable or unavailable
+    • Investigate and resolve resource constraints immediately
+    • Consider emergency scaling or load reduction
+    • Monitor system health closely
+    
+    📞 Escalate to on-call team if necessary.
+    📈 This alert will repeat every minute until resolved.
+  format: "text"
+
+# JSON Alert Template (for webhooks/APIs)
+json_alert_template:
+  id: "json-alert-template"
+  name: "JSON Alert Format"
+  subject: "Budget Alert"
+  body: |
+    {
+      "alert": {
+        "id": "{{.ID}}",
+        "budget": "{{.BudgetName}}",
+        "type": "{{.BudgetType}}",
+        "scope": "{{.Scope}}:{{.ScopeID}}",
+        "severity": "{{.Severity}}",
+        "usage": {
+          "current": "{{.CurrentValue}}",
+          "percentage": "{{.PercentageUsed}}",
+          "threshold": "{{.Threshold}}"
+        },
+        "timestamp": "{{.Timestamp}}",
+        "message": "Budget constraint violation detected"
+      }
+    }
+  format: "json"
+
+# HTML Alert Template (for rich email notifications)
+html_alert_template:
+  id: "html-alert-template"
+  name: "HTML Alert Format"
+  subject: "Budget Alert - {{.BudgetName}}"
+  body: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            .alert { background: #f8f9fa; padding: 20px; border-left: 4px solid #dc3545; }
+            .details { background: #fff; padding: 15px; margin: 10px 0; border-radius: 4px; }
+            .critical { border-left-color: #dc3545; }
+            .warning { border-left-color: #ffc107; }
+            .info { border-left-color: #17a2b8; }
+        </style>
+    </head>
+    <body>
+        <div class="alert {{.Severity}}">
+            <h2>🚨 Budget Alert: {{.BudgetName}}</h2>
+            
+            <div class="details">
+                <h3>Details</h3>
+                <ul>
+                    <li><strong>Budget:</strong> {{.BudgetName}}</li>
+                    <li><strong>Type:</strong> {{.BudgetType}}</li>
+                    <li><strong>Scope:</strong> {{.Scope}}:{{.ScopeID}}</li>
+                    <li><strong>Usage:</strong> {{.PercentageUsed}}%</li>
+                    <li><strong>Severity:</strong> {{.Severity}}</li>
+                    <li><strong>Time:</strong> {{.Timestamp}}</li>
+                </ul>
+            </div>
+            
+            <div class="details">
+                <h3>Recommended Actions</h3>
+                <p>Please investigate the resource usage and take appropriate action to resolve the constraint violation.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+  format: "html"
+

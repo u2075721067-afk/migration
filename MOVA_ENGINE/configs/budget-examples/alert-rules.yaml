@@ -1,0 +1,114 @@
+# Alert Rules Configuration
+# This file contains example alert rule configurations
+
+# High CPU Usage Alert
+cpu_threshold_alert:
+  id: "cpu-threshold-alert"
+  name: "CPU Threshold Alert"
+  description: "Alert when CPU usage exceeds 80%"
+  budgetTypes:
+    - "cpu"
+  scopes:
+    - "global"
+    - "organization"
+  thresholds:
+    - 0.8  # 80%
+  channels:
+    - "log"
+    - "email"
+  template: "cpu-alert-template"
+  severity: "high"
+  cooldown: "5m"
+  enabled: true
+  conditions:
+    - type: "percentage"
+      operator: "gte"
+      value: 0.8
+
+# Memory Usage Alert
+memory_threshold_alert:
+  id: "memory-threshold-alert"
+  name: "Memory Threshold Alert"
+  description: "Alert when memory usage exceeds 85%"
+  budgetTypes:
+    - "memory"
+  scopes:
+    - "global"
+    - "workflow"
+  thresholds:
+    - 0.85  # 85%
+  channels:
+    - "log"
+    - "slack"
+  template: "memory-alert-template"
+  severity: "critical"
+  cooldown: "3m"
+  enabled: true
+
+# API Rate Limit Alert
+api_rate_limit_alert:
+  id: "api-rate-limit-alert"
+  name: "API Rate Limit Alert"
+  description: "Alert when API rate limit approaches threshold"
+  budgetTypes:
+    - "api_requests"
+  scopes:
+    - "user"
+    - "organization"
+  thresholds:
+    - 0.9  # 90%
+  channels:
+    - "log"
+  template: "api-limit-alert-template"
+  severity: "medium"
+  cooldown: "10m"
+  enabled: true
+
+# Retry Budget Alert
+retry_budget_alert:
+  id: "retry-budget-alert"
+  name: "Retry Budget Alert"
+  description: "Alert when retry budget is approaching limit"
+  budgetTypes:
+    - "retries"
+  scopes:
+    - "user"
+    - "workflow"
+  thresholds:
+    - 0.8  # 80%
+  channels:
+    - "log"
+  template: "retry-alert-template"
+  severity: "medium"
+  cooldown: "15m"
+  enabled: true
+
+# Critical System Alert
+critical_system_alert:
+  id: "critical-system-alert"
+  name: "Critical System Alert"
+  description: "Alert for critical system resource violations"
+  budgetTypes:
+    - "cpu"
+    - "memory"
+    - "api_requests"
+  scopes:
+    - "global"
+  thresholds:
+    - 0.95  # 95%
+  channels:
+    - "log"
+    - "email"
+    - "slack"
+  template: "critical-alert-template"
+  severity: "critical"
+  cooldown: "1m"
+  enabled: true
+  conditions:
+    - type: "percentage"
+      operator: "gte"
+      value: 0.95
+    - type: "time"
+      daysOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+      hours: [9, 10, 11, 12, 13, 14, 15, 16, 17]  # Business hours
+

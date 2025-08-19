@@ -275,3 +275,4 @@ services:
 - **Issues**: GitHub Issues
 - **Logs**: `docker-compose logs`
 - **Health**: `http://localhost:8080/health`
+

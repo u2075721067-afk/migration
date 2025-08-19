@@ -1,0 +1,92 @@
+# Default Budget Constraints Configuration
+# This file contains example budget configurations for different scenarios
+
+# Global Retry Budget - System-wide retry limits
+global_retry_budget:
+  id: "global-retry-budget"
+  name: "Global Retry Budget"
+  description: "Global limit on retry operations per hour"
+  type: "retries"
+  scope: "global"
+  maxCount: 10000
+  timeWindow: "hour"
+  enabled: true
+
+# User Retry Budget - Per-user retry limits
+user_retry_budget:
+  id: "user-retry-budget-template"
+  name: "Per-User Retry Budget"
+  description: "Limit retry operations per user per hour"
+  type: "retries"
+  scope: "user"
+  maxCount: 100
+  timeWindow: "hour"
+  enabled: true
+
+# Organization API Budget - Per-organization API limits
+org_api_budget:
+  id: "org-api-budget-template"
+  name: "Organization API Budget"
+  description: "API request limit per organization per minute"
+  type: "api_requests"
+  scope: "organization"
+  maxCount: 10000
+  timeWindow: "minute"
+  enabled: true
+
+# Workflow Resource Budget - Per-workflow resource limits
+workflow_resource_budget:
+  id: "workflow-resource-budget-template"
+  name: "Workflow Resource Budget"
+  description: "Resource limits per workflow execution"
+  type: "memory"
+  scope: "workflow"
+  maxMemory: 104857600  # 100MB
+  maxDuration: "10m"
+  timeWindow: "hour"
+  enabled: true
+
+# High-Priority User Budget - For premium users
+premium_user_budget:
+  id: "premium-user-budget-template"
+  name: "Premium User Budget"
+  description: "Enhanced limits for premium users"
+  type: "api_requests"
+  scope: "user"
+  maxCount: 5000
+  timeWindow: "minute"
+  enabled: true
+
+# Session Budget - Per-session limits
+session_budget:
+  id: "session-budget-template"
+  name: "Session Budget"
+  description: "Limits per user session"
+  type: "retries"
+  scope: "session"
+  maxCount: 50
+  timeWindow: "hour"
+  enabled: true
+
+# CPU Budget - System CPU limits
+cpu_budget:
+  id: "global-cpu-budget"
+  name: "Global CPU Budget"
+  description: "Global CPU usage limit"
+  type: "cpu"
+  scope: "global"
+  maxCPU: 0.8  # 80%
+  timeWindow: "minute"
+  enabled: true
+
+# Memory Budget - System memory limits
+memory_budget:
+  id: "global-memory-budget"
+  name: "Global Memory Budget"
+  description: "Global memory usage limit"
+  type: "memory"
+  scope: "global"
+  maxMemory: 2147483648  # 2GB
+  timeWindow: "minute"
+  enabled: true
+

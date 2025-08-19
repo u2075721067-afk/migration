@@ -123,3 +123,4 @@ func UpdateSystemMetrics(goroutines int, memBytes uint64) {
 	activeGoroutines.Set(float64(goroutines))
 	memoryUsage.Set(float64(memBytes))
 }
+

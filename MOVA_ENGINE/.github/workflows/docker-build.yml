@@ -76,3 +76,4 @@ jobs:
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
+
