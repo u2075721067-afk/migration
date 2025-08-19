@@ -39,6 +39,8 @@ type ConfigBundle struct {
 	DLQEntries    []DLQEntryConfig     `json:"dlqEntries,omitempty" yaml:"dlqEntries,omitempty"`
 	Workflows     []WorkflowConfig     `json:"workflows,omitempty" yaml:"workflows,omitempty"`
 	RetryProfiles []RetryProfileConfig `json:"retryProfiles,omitempty" yaml:"retryProfiles,omitempty"`
+	Rules         []RuleConfig         `json:"rules,omitempty" yaml:"rules,omitempty"`
+	RuleSets      []RuleSetConfig      `json:"ruleSets,omitempty" yaml:"ruleSets,omitempty"`
 }
 
 // PolicyConfig represents a policy configuration for export/import
@@ -194,4 +196,44 @@ type ImportSummary struct {
 	DLQEntries    int `json:"dlqEntries" yaml:"dlqEntries"`
 	Workflows     int `json:"workflows" yaml:"workflows"`
 	RetryProfiles int `json:"retryProfiles" yaml:"retryProfiles"`
+	Rules         int `json:"rules" yaml:"rules"`
+	RuleSets      int `json:"ruleSets" yaml:"ruleSets"`
+}
+
+// RuleConfig represents a rule configuration for export/import
+type RuleConfig struct {
+	ID          string                `json:"id" yaml:"id"`
+	Name        string                `json:"name" yaml:"name"`
+	Description string                `json:"description" yaml:"description"`
+	Priority    int                   `json:"priority" yaml:"priority"`
+	Enabled     bool                  `json:"enabled" yaml:"enabled"`
+	Conditions  []RuleConditionConfig `json:"conditions" yaml:"conditions"`
+	Actions     []RuleActionConfig    `json:"actions" yaml:"actions"`
+	CreatedAt   time.Time             `json:"createdAt" yaml:"createdAt"`
+	UpdatedAt   time.Time             `json:"updatedAt" yaml:"updatedAt"`
+}
+
+// RuleConditionConfig represents a rule condition configuration
+type RuleConditionConfig struct {
+	Field    string      `json:"field" yaml:"field"`
+	Operator string      `json:"operator" yaml:"operator"`
+	Value    interface{} `json:"value" yaml:"value"`
+	Negate   bool        `json:"negate,omitempty" yaml:"negate,omitempty"`
+}
+
+// RuleActionConfig represents a rule action configuration
+type RuleActionConfig struct {
+	Type   string                 `json:"type" yaml:"type"`
+	Params map[string]interface{} `json:"params" yaml:"params"`
+}
+
+// RuleSetConfig represents a ruleset configuration for export/import
+type RuleSetConfig struct {
+	Version     string            `json:"version" yaml:"version"`
+	Name        string            `json:"name" yaml:"name"`
+	Description string            `json:"description" yaml:"description"`
+	Rules       []RuleConfig      `json:"rules" yaml:"rules"`
+	Metadata    map[string]string `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	CreatedAt   time.Time         `json:"createdAt" yaml:"createdAt"`
+	UpdatedAt   time.Time         `json:"updatedAt" yaml:"updatedAt"`
 }

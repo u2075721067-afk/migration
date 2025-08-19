@@ -1,0 +1,364 @@
+version: "1.0.0"
+name: "Production Monitoring Rules"
+description: "Comprehensive rules for production workflow monitoring and automation"
+metadata:
+  environment: "production"
+  team: "platform"
+  created_by: "MOVA Rule Engine"
+  
+rules:
+  # High Priority Error Handling
+  - id: "critical-error-alert"
+    name: "Critical Error Alert"
+    description: "Immediate alert for critical system errors"
+    priority: 300
+    enabled: true
+    conditions:
+      - field: "error.severity"
+        operator: "=="
+        value: "critical"
+      - field: "system.component"
+        operator: "in"
+        value: ["database", "payment", "auth"]
+    actions:
+      - type: "log"
+        params:
+          message: "CRITICAL: {{error.message}} in {{system.component}}"
+          level: "error"
+      - type: "http_call"
+        params:
+          url: "https://alerts.company.com/critical"
+          method: "POST"
+          timeout: 10000
+          headers:
+            Authorization: "Bearer {{alert_token}}"
+            Content-Type: "application/json"
+          body:
+            alert_type: "critical_error"
+            component: "{{system.component}}"
+            error: "{{error.message}}"
+            workflow_id: "{{workflow_id}}"
+            timestamp: "{{timestamp}}"
+      - type: "stop"
+        params:
+          reason: "Critical error detected - stopping workflow"
+
+  # Payment Processing Rules
+  - id: "payment-failure-retry"
+    name: "Payment Failure Retry Logic"
+    description: "Smart retry logic for payment failures"
+    priority: 200
+    enabled: true
+    conditions:
+      - field: "payment.status"
+        operator: "=="
+        value: "failed"
+      - field: "payment.error_code"
+        operator: "in"
+        value: ["timeout", "network_error", "temporary_unavailable"]
+      - field: "retry_count"
+        operator: "<"
+        value: 3
+    actions:
+      - type: "set_var"
+        params:
+          variable: "payment_retry_attempted"
+          value: true
+      - type: "retry"
+        params:
+          profile: "payment_retry"
+          max_attempts: 3
+          delay: 5000
+      - type: "log"
+        params:
+          message: "Retrying payment for order {{order.id}} (attempt {{retry_count}})"
+          level: "info"
+
+  # High Value Order Processing
+  - id: "high-value-order"
+    name: "High Value Order Processing"
+    description: "Special handling for high-value orders"
+    priority: 180
+    enabled: true
+    conditions:
+      - field: "order.total"
+        operator: ">"
+        value: 1000
+      - field: "customer.risk_level"
+        operator: "!="
+        value: "high"
+    actions:
+      - type: "log"
+        params:
+          message: "Processing high-value order: ${{order.total}} for customer {{customer.email}}"
+          level: "info"
+      - type: "set_var"
+        params:
+          variable: "requires_manual_review"
+          value: true
+      - type: "http_call"
+        params:
+          url: "https://api.company.com/orders/{{order.id}}/flag-review"
+          method: "POST"
+          headers:
+            Authorization: "Bearer {{api_token}}"
+          body:
+            reason: "high_value_order"
+            amount: "{{order.total}}"
+
+  # API Rate Limiting
+  - id: "api-rate-limit-exceeded"
+    name: "API Rate Limit Handler"
+    description: "Handle API rate limit exceeded scenarios"
+    priority: 150
+    enabled: true
+    conditions:
+      - field: "response.status_code"
+        operator: "=="
+        value: 429
+      - field: "api.endpoint"
+        operator: "contains"
+        value: "/api/"
+    actions:
+      - type: "log"
+        params:
+          message: "Rate limit exceeded for {{api.endpoint}}"
+          level: "warning"
+      - type: "retry"
+        params:
+          profile: "rate_limit_retry"
+          max_attempts: 5
+          delay: 10000
+      - type: "transform"
+        params:
+          type: "json_stringify"
+          source: "response.headers"
+          target: "response_headers_json"
+
+  # Database Connection Issues
+  - id: "database-connection-error"
+    name: "Database Connection Error Handler"
+    description: "Handle database connection failures with circuit breaker pattern"
+    priority: 200
+    enabled: true
+    conditions:
+      - field: "error.type"
+        operator: "=="
+        value: "database_connection"
+      - field: "error.message"
+        operator: "regex"
+        value: "(connection.*timeout|connection.*refused|connection.*lost)"
+    actions:
+      - type: "log"
+        params:
+          message: "Database connection error: {{error.message}}"
+          level: "error"
+      - type: "set_var"
+        params:
+          variable: "database_circuit_breaker"
+          value: "open"
+      - type: "route"
+        params:
+          workflow: "database_fallback_workflow"
+          reason: "Database connection failure"
+
+  # User Authentication Failures
+  - id: "auth-failure-monitoring"
+    name: "Authentication Failure Monitoring"
+    description: "Monitor and respond to authentication failures"
+    priority: 160
+    enabled: true
+    conditions:
+      - field: "auth.status"
+        operator: "=="
+        value: "failed"
+      - field: "auth.attempts"
+        operator: ">="
+        value: 3
+      - field: "user.ip"
+        operator: "exists"
+    actions:
+      - type: "log"
+        params:
+          message: "Multiple auth failures for user {{user.id}} from IP {{user.ip}}"
+          level: "warning"
+      - type: "set_var"
+        params:
+          variable: "security_alert_triggered"
+          value: true
+      - type: "http_call"
+        params:
+          url: "https://security.company.com/suspicious-activity"
+          method: "POST"
+          headers:
+            Authorization: "Bearer {{security_token}}"
+          body:
+            event_type: "multiple_auth_failures"
+            user_id: "{{user.id}}"
+            ip_address: "{{user.ip}}"
+            attempt_count: "{{auth.attempts}}"
+
+  # System Resource Monitoring
+  - id: "high-memory-usage"
+    name: "High Memory Usage Alert"
+    description: "Alert when memory usage exceeds threshold"
+    priority: 140
+    enabled: true
+    conditions:
+      - field: "system.memory_usage_percent"
+        operator: ">"
+        value: 85
+      - field: "system.memory_available_mb"
+        operator: "<"
+        value: 500
+    actions:
+      - type: "log"
+        params:
+          message: "High memory usage: {{system.memory_usage_percent}}% ({{system.memory_available_mb}}MB available)"
+          level: "warning"
+      - type: "http_call"
+        params:
+          url: "https://monitoring.company.com/alerts"
+          method: "POST"
+          body:
+            alert_type: "high_memory_usage"
+            usage_percent: "{{system.memory_usage_percent}}"
+            available_mb: "{{system.memory_available_mb}}"
+            hostname: "{{system.hostname}}"
+
+  # Workflow Performance Monitoring
+  - id: "slow-workflow-detection"
+    name: "Slow Workflow Detection"
+    description: "Detect and alert on slow-running workflows"
+    priority: 120
+    enabled: true
+    conditions:
+      - field: "workflow.duration_ms"
+        operator: ">"
+        value: 30000
+      - field: "workflow.type"
+        operator: "in"
+        value: ["payment_processing", "order_fulfillment", "user_registration"]
+    actions:
+      - type: "log"
+        params:
+          message: "Slow workflow detected: {{workflow.type}} took {{workflow.duration_ms}}ms"
+          level: "warning"
+      - type: "transform"
+        params:
+          type: "uppercase"
+          source: "workflow.type"
+          target: "workflow_type_upper"
+      - type: "set_var"
+        params:
+          variable: "performance_issue_detected"
+          value: true
+
+  # Data Validation Rules
+  - id: "invalid-email-format"
+    name: "Invalid Email Format Handler"
+    description: "Handle invalid email format in user data"
+    priority: 100
+    enabled: true
+    conditions:
+      - field: "user.email"
+        operator: "exists"
+      - field: "user.email"
+        operator: "regex"
+        value: "^[^@]+@[^@]+\\.[^@]+"
+        negate: true
+    actions:
+      - type: "log"
+        params:
+          message: "Invalid email format detected: {{user.email}}"
+          level: "error"
+      - type: "set_var"
+        params:
+          variable: "email_validation_failed"
+          value: true
+      - type: "skip"
+        params:
+          reason: "Invalid email format - skipping user registration"
+
+  # Maintenance Window Handler
+  - id: "maintenance-window-active"
+    name: "Maintenance Window Handler"
+    description: "Handle requests during maintenance windows"
+    priority: 400
+    enabled: false  # Enable during maintenance
+    conditions:
+      - field: "system.maintenance_mode"
+        operator: "=="
+        value: true
+      - field: "request.path"
+        operator: "not_contains"
+        value: "/health"
+    actions:
+      - type: "log"
+        params:
+          message: "Request blocked due to maintenance window: {{request.path}}"
+          level: "info"
+      - type: "skip"
+        params:
+          reason: "System is in maintenance mode"
+
+  # External API Timeout Handler
+  - id: "external-api-timeout"
+    name: "External API Timeout Handler"
+    description: "Handle timeouts from external API calls"
+    priority: 130
+    enabled: true
+    conditions:
+      - field: "external_api.response_time_ms"
+        operator: ">"
+        value: 10000
+      - field: "external_api.status"
+        operator: "=="
+        value: "timeout"
+    actions:
+      - type: "log"
+        params:
+          message: "External API timeout: {{external_api.url}} took {{external_api.response_time_ms}}ms"
+          level: "error"
+      - type: "set_var"
+        params:
+          variable: "api_timeout_occurred"
+          value: true
+      - type: "retry"
+        params:
+          profile: "api_timeout_retry"
+          max_attempts: 2
+          delay: 3000
+
+  # Success Workflow Completion
+  - id: "workflow-success-notification"
+    name: "Workflow Success Notification"
+    description: "Send notifications for successfully completed workflows"
+    priority: 50
+    enabled: true
+    conditions:
+      - field: "workflow.status"
+        operator: "=="
+        value: "completed"
+      - field: "workflow.type"
+        operator: "in"
+        value: ["order_processing", "payment_processing"]
+      - field: "notification.enabled"
+        operator: "=="
+        value: true
+    actions:
+      - type: "log"
+        params:
+          message: "Workflow {{workflow.type}} completed successfully for {{workflow.id}}"
+          level: "info"
+      - type: "http_call"
+        params:
+          url: "https://notifications.company.com/success"
+          method: "POST"
+          headers:
+            Content-Type: "application/json"
+          body:
+            workflow_id: "{{workflow.id}}"
+            workflow_type: "{{workflow.type}}"
+            completion_time: "{{timestamp}}"
+            duration_ms: "{{workflow.duration_ms}}"
