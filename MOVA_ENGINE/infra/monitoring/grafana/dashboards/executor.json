@@ -1,0 +1,204 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "MOVA Executor Dashboard",
+    "tags": ["mova", "executor", "workflows"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Workflow Runs Total",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(workflow_runs_total)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Workflow Success Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(workflow_runs_total{status=\"success\"}) / sum(workflow_runs_total) * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 80},
+                {"color": "green", "value": 95}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Average Workflow Duration",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.5, sum(rate(workflow_duration_seconds_bucket[5m])) by (le))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "Actions Executed",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(executor_action_total)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+      },
+      {
+        "id": 5,
+        "title": "Workflow Runs by Status",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(workflow_runs_total[5m])) by (status)",
+            "refId": "A",
+            "legendFormat": "{{status}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Workflows/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 6,
+        "title": "Workflow Duration Distribution",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "sum(rate(workflow_duration_seconds_bucket[5m])) by (le)",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 7,
+        "title": "Actions by Type",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(executor_action_total[5m])) by (type)",
+            "refId": "A",
+            "legendFormat": "{{type}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Actions/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 8,
+        "title": "Action Duration by Type",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(executor_action_duration_seconds_bucket[5m])) by (type, le))",
+            "refId": "A",
+            "legendFormat": "{{type}} P95"
+          },
+          {
+            "expr": "histogram_quantile(0.5, sum(rate(executor_action_duration_seconds_bucket[5m])) by (type, le))",
+            "refId": "B",
+            "legendFormat": "{{type}} P50"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Duration (s)",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 9,
+        "title": "Failed Actions by Type",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum(executor_action_total{status=\"error\"}) by (type)",
+            "refId": "A",
+            "legendFormat": "{{type}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+      },
+      {
+        "id": 10,
+        "title": "Top 10 Slowest Workflows",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "topk(10, workflow_duration_seconds)",
+            "refId": "A",
+            "format": "table"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "10s",
+    "schemaVersion": 30,
+    "version": 1
+  }
+}

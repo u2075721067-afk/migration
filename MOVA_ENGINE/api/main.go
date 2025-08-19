@@ -8,19 +8,34 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mova-engine/mova-engine/core/executor"
 	"github.com/mova-engine/mova-engine/core/validator"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/sirupsen/logrus"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
 func main() {
+	// Initialize tracing
+	cleanup := InitTracing()
+	defer cleanup()
+
+	// Log system startup
+	LogSystemEvent("startup", logrus.Fields{
+		"version":    "1.0.0",
+		"go_version": runtime.Version(),
+	})
+
 	// Initialize executor and validator
 	exec := executor.NewExecutor()
 	v, err := validator.NewValidator("./schemas")
 	if err != nil {
+		LogError("main", "validator_init", err, nil)
 		log.Fatalf("Failed to initialize validator: %v", err)
 	}
 
@@ -33,10 +48,11 @@ func main() {
 	router := gin.Default()
 
 	// Add middleware
-	router.Use(gin.Logger())
+	router.Use(StructuredLoggingMiddleware())
 	router.Use(gin.Recovery())
-	router.Use(loggingMiddleware())
 	router.Use(errorHandlingMiddleware())
+	router.Use(PrometheusMiddleware())
+	router.Use(otelgin.Middleware("mova-engine"))
 
 	// API routes
 	v1 := router.Group("/v1")
@@ -67,6 +83,12 @@ func main() {
 		})
 	})
 
+	// Metrics endpoint
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
+	// Start system metrics updater
+	go updateSystemMetrics()
+
 	// Start server
 	srv := &http.Server{
 		Addr:    ":8080",
@@ -75,7 +97,11 @@ func main() {
 
 	// Graceful shutdown
 	go func() {
+		LogSystemEvent("server_start", logrus.Fields{
+			"addr": srv.Addr,
+		})
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			LogError("main", "server_start", err, nil)
 			log.Fatalf("Failed to start server: %v", err)
 		}
 	}()
@@ -85,16 +111,17 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("Shutting down server...")
+	LogSystemEvent("shutdown_start", nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
+		LogError("main", "server_shutdown", err, nil)
 		log.Fatal("Server forced to shutdown:", err)
 	}
 
-	log.Println("Server exiting")
+	LogSystemEvent("shutdown_complete", nil)
 }
 
 // handleExecute handles workflow execution requests
@@ -436,4 +463,23 @@ func errorHandlingMiddleware() gin.HandlerFunc {
 // Helper functions
 func generateRunID() string {
 	return fmt.Sprintf("run_%d", time.Now().UnixNano())
+}
+
+// updateSystemMetrics periodically updates system metrics
+func updateSystemMetrics() {
+	ticker := time.NewTicker(15 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			var m runtime.MemStats
+			runtime.ReadMemStats(&m)
+
+			UpdateSystemMetrics(
+				runtime.NumGoroutine(),
+				m.Alloc,
+			)
+		}
+	}
 }
