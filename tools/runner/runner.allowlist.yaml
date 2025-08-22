@@ -1,0 +1,48 @@
+# Navigator Agent Runner - Allow-list Configuration
+# Only commands defined here can be executed by the Runner service
+# Format: command templates with placeholders for safe parameter substitution
+
+commands:
+
+  # Build the MOVA Engine
+  build:
+    - "make"
+    - "build"
+
+  # Start Docker Compose services
+  compose_up:
+    - "docker-compose"
+    - "up"
+    - "-d"
+
+  # Validate a MOVA envelope
+  validate:
+    - "mova"
+    - "validate"
+    - {"file": {"type": "file", "required": true}}
+
+  # Execute a MOVA envelope
+  run:
+    - "mova"
+    - "run"
+    - {"file": {"type": "file", "required": true}}
+    - "--wait"
+
+  # Show logs for a specific run ID
+  logs:
+    - "mova"
+    - "logs"
+    - {"run_id": {"type": "run_id", "required": true}}
+
+  # Show engine introspection/capabilities
+  introspect:
+    - "mova"
+    - "introspect"
+
+# Security Notes:
+# - All file paths are sanitized to stay within PROJECT_ROOT
+# - run_id must be alphanumeric + underscore/hyphen only
+# - No shell execution (argv only)
+# - Rate limiting: 5 requests per minute
+# - Timeout: 30 seconds per command
+# - Output capped at 4000 characters per stream
